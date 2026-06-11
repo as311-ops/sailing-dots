@@ -14,7 +14,8 @@ import { createChampionSnapshot, type ChampionSnapshot } from './lineage';
 import {
   sailingEnv,
   advanceSailingGeneration,
-  quadrantCenter,
+  startBox,
+  startSlot,
   REGATTA_FINISHED_BIT,
   REGATTA_TICK_MASK,
 } from './sailing';
@@ -31,19 +32,23 @@ export interface GenerationResult {
 }
 
 /**
- * Spawn-Platzierung für die Regatta: gleichverteilt, aber mindestens eine
- * halbe Grid-Breite vom Zentrum des Ziel-Quadranten entfernt.
+ * Startaufstellung: Die Boote füllen Reihe für Reihe die Startbox im
+ * gegenüberliegenden Quadranten — alle hinter der Startlinie, mit (nahezu)
+ * gleicher Distanz zum Ziel-Gate. Übergelaufene Slots (geclampte Ränder)
+ * werden übersprungen; als letzter Ausweg gilt eine zufällige freie Zelle.
  */
-function findRegattaSpawnLocation(grid: Grid, params: SimParams): Coord {
-  const center = quadrantCenter(sailingEnv.targetQuadrant, params.sizeX, params.sizeY);
-  const minDist = params.sizeX / 2;
-  for (let tries = 0; tries < 100; tries++) {
-    const loc = grid.findEmptyLocation();
-    const dx = loc.x - center.x;
-    const dy = loc.y - center.y;
-    if (Math.sqrt(dx * dx + dy * dy) >= minDist) return loc;
-  }
-  return grid.findEmptyLocation();
+function createStartLineupFinder(params: SimParams): (grid: Grid) => Coord {
+  const box = startBox(sailingEnv.targetQuadrant, params.sizeX, params.sizeY);
+  let slot = 0;
+  const maxSlots = params.population * 3;
+  return (grid: Grid) => {
+    while (slot < maxSlots) {
+      const s = startSlot(slot++, box, params.sizeX, params.sizeY);
+      const loc = new Coord(s.x, s.y);
+      if (grid.isEmptyAt(loc)) return loc;
+    }
+    return grid.findEmptyLocation();
+  };
 }
 
 /**
@@ -60,7 +65,7 @@ export function initializeGeneration0(
   grid.zeroFill();
   signals.zeroFill();
   grid.createBarrier(params.barrierType, params);
-  peeps.init(params.population, grid, (g) => findRegattaSpawnLocation(g, params));
+  peeps.init(params.population, grid, createStartLineupFinder(params));
 
   const wiringParams = {
     maxNumberNeurons: params.maxNumberNeurons,
@@ -205,7 +210,7 @@ function initializeNewGeneration(
   grid.zeroFill();
   signals.zeroFill();
   grid.createBarrier(params.barrierType, params);
-  peeps.init(params.population, grid, (g) => findRegattaSpawnLocation(g, params));
+  peeps.init(params.population, grid, createStartLineupFinder(params));
 
   const wiringParams = {
     maxNumberNeurons: params.maxNumberNeurons,

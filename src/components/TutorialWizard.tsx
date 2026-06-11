@@ -154,7 +154,7 @@ const STEPS = [
   {
     subtitle: "THE ENGINE",
     title: "How Evolution Works",
-    body: "Each generation is one race. When time is up, every boat is scored: reaching the target quadrant early scores highest, getting close earns a small consolation. The best scores become parents: their genomes are copied, crossed over, and mutated for the next race. Over hundreds of generations, sailing skill spreads through the fleet.",
+    body: "Each generation is one race: the fleet lines up behind the start line, and whoever crosses the finish gate between the buoys earliest scores highest — getting close earns a small consolation. The best scores become parents: their genomes are copied, crossed over, and mutated for the next race. Over hundreds of generations, sailing skill spreads through the fleet.",
     visual: (
       <div className="flex items-center justify-center gap-1 flex-wrap text-[9px]">
         {[
@@ -182,7 +182,7 @@ const STEPS = [
   {
     subtitle: "THE RULES",
     title: "The Wind Decides",
-    body: "The target is one quadrant of the sea, the wind blows from one of 8 directions. A downwind target is easy — just run with the wind. An upwind target demands tacking. And the wind shifts over the generations: genomes that memorized compass directions collapse, genomes that navigate relative to the wind keep winning.",
+    body: "The finish gate sits in one quadrant of the sea, the wind blows from one of 8 directions. A downwind gate is easy — just run with the wind. An upwind gate demands tacking, and the narrow gate funnels the whole fleet through one bottleneck. The wind shifts over the generations: genomes that memorized compass directions collapse, genomes that navigate relative to the wind keep winning.",
     visual: (
       <div className="grid grid-cols-2 gap-1.5 text-[9px]">
         {[

@@ -1,26 +1,32 @@
-// challenge-overlay.ts -- Zielzonen-Overlay für die Regatta
-// Markiert den Ziel-Quadranten, den die Boote als erstes erreichen sollen.
+// challenge-overlay.ts -- Overlay-Formen für die Regatta:
+// Ziel-Gate zwischen zwei Bojen + Startlinie vor der Startaufstellung.
+
+import { finishGate, startBox } from './sailing';
 
 export type OverlayShape =
-  | { type: 'circle'; cx: number; cy: number; radius: number }
-  | { type: 'rect'; x: number; y: number; w: number; h: number };
+  | { type: 'finishline'; x1: number; y1: number; x2: number; y2: number }
+  | { type: 'startline'; x1: number; y1: number; x2: number; y2: number }
+  | { type: 'buoy'; cx: number; cy: number };
 
-/**
- * Liefert die Zielzone als Rechteck. Quadranten in Grid-Koordinaten (y+ = Nord):
- * 0=SW, 1=SE, 2=NW, 3=NE.
- */
 export function getChallengeOverlay(
   targetQuadrant: number,
   sizeX: number,
   sizeY: number,
 ): OverlayShape[] {
-  const halfX = Math.floor(sizeX / 2);
-  const halfY = Math.floor(sizeY / 2);
-  return [{
-    type: 'rect',
-    x: (targetQuadrant & 1) === 0 ? 0 : halfX,
-    y: (targetQuadrant & 2) === 0 ? 0 : halfY,
-    w: (targetQuadrant & 1) === 0 ? halfX : sizeX - halfX,
-    h: (targetQuadrant & 2) === 0 ? halfY : sizeY - halfY,
-  }];
+  const gate = finishGate(targetQuadrant, sizeX, sizeY);
+  const box = startBox(targetQuadrant, sizeX, sizeY);
+  const halfW = Math.floor(box.width / 2);
+
+  return [
+    { type: 'finishline', x1: gate.x0, y1: gate.y, x2: gate.x1, y2: gate.y },
+    { type: 'buoy', cx: gate.x0 - 1, cy: gate.y },
+    { type: 'buoy', cx: gate.x1 + 1, cy: gate.y },
+    {
+      type: 'startline',
+      x1: box.centerX - halfW,
+      y1: box.startLineY,
+      x2: box.centerX + halfW,
+      y2: box.startLineY,
+    },
+  ];
 }

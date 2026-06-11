@@ -16,7 +16,7 @@ Forked from [Darwin's Arena](https://github.com/as311-ops/darwin-dots), conceptu
 
 - **Sailing physics** — polar table with no-go zone (5% speed), close-hauled (50%), beam reach (100%), broad reach (90%), running (70%)
 - **Wind regimes** — fixed, rotating (45° every N generations), or random per generation
-- **Regatta challenge** — target quadrant per race; arriving early scores highest, near-misses earn a consolation gradient so early generations can bootstrap
+- **Regatta challenge** — the fleet lines up behind a start line and races through a finish gate between two buoys; crossing early scores highest, near-misses earn a consolation gradient so early generations can bootstrap
 - **Real-time visualization** — boats as heading-rotated triangles, wind rose overlay, highlighted target zone
 - **Live commentary** — sports-reporter style commentary on the fleet's progress
 - **Genome visualization** — network graph of evolved neural connections
@@ -46,11 +46,11 @@ The app is a pure client-side SPA with no backend, deployed on Vercel. Every pus
 
 ## How does the simulation work?
 
-1. **Initialization**: A fleet of boats spawns in the half of the sea far from the target, each with a random genome encoding a neural network (10 sensors, inner neurons, 2 actions).
+1. **Initialization**: The fleet lines up in rows behind a start line in the quadrant opposite the finish gate — everyone races the same course. Each boat carries a random genome encoding a neural network (10 sensors, inner neurons, 2 actions).
 
 2. **Simulation**: Each step, every boat reads its sensors — wind angle and target bearing relative to its own heading (as sin/cos pairs), target distance, speed — processes them through its neural network, and steers: turn 45° to port or starboard. The boat always sails forward along its heading, with a move probability taken from the polar table.
 
-3. **Scoring**: When a boat first enters the target quadrant, its arrival tick is recorded. Score = earlier is better. Boats that never arrive get a small consolation score for getting close.
+3. **Scoring**: When a boat first crosses the finish gate between the two buoys, its arrival tick is recorded — sailing past outside the buoys counts for nothing. Score = earlier is better. Boats that never finish get a small consolation score for getting close to the gate.
 
 4. **Reproduction**: The best scores become parents. Their genomes are copied, crossed over, and mutated for the next race.
 

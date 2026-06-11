@@ -14,7 +14,8 @@ import { nameFromGenome, clanFromGenome } from './naming';
 import {
   sailingEnv,
   advanceSailingGeneration,
-  isInQuadrant,
+  finishGate,
+  isOnFinishGate,
   REGATTA_FINISHED_BIT,
 } from './sailing';
 
@@ -342,12 +343,13 @@ export class Simulator {
     this.peeps.drainDeathQueue(this.grid);
     this.peeps.drainMoveQueue(this.grid);
 
-    // Regatta: erstmaliges Erreichen des Ziel-Quadranten markieren
+    // Regatta: erstmaliges Durchfahren des Ziel-Gates markieren
+    const gate = finishGate(sailingEnv.targetQuadrant, this.params.sizeX, this.params.sizeY);
     for (let i = 1; i <= this.peeps.population; i++) {
       const indiv = this.peeps.getIndiv(i);
       if (!indiv.alive) continue;
       if (indiv.challengeBits & REGATTA_FINISHED_BIT) continue;
-      if (isInQuadrant(indiv.loc.x, indiv.loc.y, sailingEnv.targetQuadrant, this.params.sizeX, this.params.sizeY)) {
+      if (isOnFinishGate(indiv.loc.x, indiv.loc.y, gate)) {
         indiv.challengeBits = REGATTA_FINISHED_BIT | Math.min(0xFFFF, this.simStep);
       }
     }

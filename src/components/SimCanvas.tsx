@@ -143,9 +143,9 @@ export default function SimCanvas({
         }
       }
 
-      // Zielzonen-Overlay
+      // Startlinie + Ziel-Gate
       const shapes = getChallengeOverlay(targetQuadrant, gridSize.x, gridSize.y);
-      drawOverlay(ctx, shapes, cellW, cellH, gridSize.y, `Target ${QUADRANT_LABELS[targetQuadrant] ?? ''}`);
+      drawOverlay(ctx, shapes, cellW, cellH, gridSize.y, `Finish ${QUADRANT_LABELS[targetQuadrant] ?? ''}`);
 
       // Barriers
       ctx.fillStyle = "#52525b";
@@ -419,58 +419,62 @@ function drawOverlay(
   gridSizeY: number,
   label?: string,
 ) {
+  // Zellenzentrum in Screen-Koordinaten (Grid-y+ = Nord → spiegeln)
+  const px = (gx: number) => gx * cellW + cellW / 2;
+  const py = (gy: number) => (gridSizeY - 1 - gy) * cellH + cellH / 2;
   let labelDrawn = false;
+
   for (const shape of shapes) {
     switch (shape.type) {
-      case 'circle': {
-        ctx.fillStyle = "rgba(16, 185, 129, 0.15)";
-        ctx.strokeStyle = "rgba(16, 185, 129, 0.6)";
-        ctx.lineWidth = 2;
-        ctx.setLineDash([6, 4]);
+      case 'finishline': {
+        ctx.strokeStyle = "rgba(16, 185, 129, 0.85)";
+        ctx.lineWidth = Math.max(cellH * 0.5, 2);
+        ctx.setLineDash([cellW, cellW]); // Zielband-Schachbrett-Optik
         ctx.beginPath();
-        ctx.arc(
-          shape.cx * cellW + cellW / 2,
-          (gridSizeY - 1 - shape.cy) * cellH + cellH / 2,
-          shape.radius * cellW,
-          0,
-          Math.PI * 2
-        );
-        ctx.fill();
+        ctx.moveTo(px(shape.x1) - cellW / 2, py(shape.y1));
+        ctx.lineTo(px(shape.x2) + cellW / 2, py(shape.y2));
         ctx.stroke();
         ctx.setLineDash([]);
         break;
       }
 
-      case 'rect': {
-        // Grid-y+ = Nord → Rechteck vertikal spiegeln
-        const sx = shape.x * cellW;
-        const sy = (gridSizeY - shape.y - shape.h) * cellH;
-        ctx.fillStyle = "rgba(16, 185, 129, 0.15)";
-        ctx.strokeStyle = "rgba(16, 185, 129, 0.6)";
-        ctx.lineWidth = 2;
-        ctx.setLineDash([6, 4]);
-        ctx.fillRect(sx, sy, shape.w * cellW, shape.h * cellH);
-        ctx.strokeRect(sx, sy, shape.w * cellW, shape.h * cellH);
+      case 'startline': {
+        ctx.strokeStyle = "rgba(250, 250, 250, 0.45)";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(px(shape.x1), py(shape.y1));
+        ctx.lineTo(px(shape.x2), py(shape.y2));
+        ctx.stroke();
         ctx.setLineDash([]);
+
+        ctx.font = "9px ui-sans-serif, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "rgba(250, 250, 250, 0.5)";
+        ctx.fillText("START", (px(shape.x1) + px(shape.x2)) / 2, py(shape.y1) - 6);
+        break;
+      }
+
+      case 'buoy': {
+        const r = Math.max(cellW * 0.7, 3);
+        ctx.fillStyle = "rgba(251, 146, 60, 0.95)"; // orange Boje
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(px(shape.cx), py(shape.cy), r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
         break;
       }
     }
 
-    // Draw label once, positioned near the first shape
-    if (!labelDrawn && label) {
+    // Label einmal zeichnen, unterhalb der Ziellinie
+    if (!labelDrawn && label && shape.type === 'finishline') {
       labelDrawn = true;
-      let lx: number, ly: number;
-      if (shape.type === 'circle') {
-        lx = shape.cx * cellW + cellW / 2;
-        ly = (gridSizeY - 1 - shape.cy) * cellH + cellH / 2 + shape.radius * cellW + 16;
-      } else {
-        lx = shape.x * cellW + (shape.w * cellW) / 2;
-        ly = (gridSizeY - shape.y - shape.h) * cellH + (shape.h * cellH) / 2;
-      }
-      // Clamp within canvas bounds
+      const lx = (px(shape.x1) + px(shape.x2)) / 2;
+      let ly = py(shape.y1) + 18;
       ly = Math.min(ly, gridSizeY * cellH - 8);
       ly = Math.max(ly, 14);
-      lx = Math.max(lx, 10);
 
       ctx.font = "10px ui-sans-serif, system-ui, sans-serif";
       ctx.textAlign = "center";
@@ -480,7 +484,7 @@ function drawOverlay(
       ctx.beginPath();
       ctx.roundRect(lx - metrics.width / 2 - pad, ly - 10, metrics.width + pad * 2, 14, 3);
       ctx.fill();
-      ctx.fillStyle = "rgba(16, 185, 129, 0.7)";
+      ctx.fillStyle = "rgba(16, 185, 129, 0.8)";
       ctx.fillText(label, lx, ly);
     }
   }

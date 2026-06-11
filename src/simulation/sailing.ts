@@ -86,6 +86,74 @@ export function isInQuadrant(x: number, y: number, q: number, sizeX: number, siz
 export const QUADRANT_NAMES: ReadonlyArray<string> = ['SW', 'SE', 'NW', 'NE'];
 
 // ---------------------------------------------------------------------------
+// Ziel-Gate und Startaufstellung
+// ---------------------------------------------------------------------------
+
+/**
+ * Ziel-Gate: horizontales Zellen-Segment zwischen zwei Bojen, zentriert auf
+ * dem Quadranten-Zentrum. Gefinisht hat, wer eine Gate-Zelle betritt —
+ * außen an den Bojen vorbei zählt nicht. Da Moves max. 1 Zelle pro Tick
+ * sind, kann eine 1 Zelle dicke Linie nicht übersprungen werden.
+ */
+export interface FinishGate {
+  y: number;
+  x0: number; // erste Gate-Zelle (inklusive)
+  x1: number; // letzte Gate-Zelle (inklusive); Bojen bei x0-1 und x1+1
+}
+
+export function finishGate(q: number, sizeX: number, sizeY: number): FinishGate {
+  const c = quadrantCenter(q, sizeX, sizeY);
+  const half = Math.floor(Math.max(8, Math.floor(sizeX / 8)) / 2);
+  return {
+    y: c.y,
+    x0: Math.max(1, c.x - half),
+    x1: Math.min(sizeX - 2, c.x + half - 1),
+  };
+}
+
+export function isOnFinishGate(x: number, y: number, gate: FinishGate): boolean {
+  return y === gate.y && x >= gate.x0 && x <= gate.x1;
+}
+
+/**
+ * Startaufstellung: kompakter Block im diagonal gegenüberliegenden
+ * Quadranten. Die Boote füllen Reihen hinter der Startlinie, die dem Gate
+ * zugewandt ist — alle starten mit (nahezu) gleicher Distanz zum Ziel.
+ */
+export interface StartBox {
+  centerX: number;
+  startLineY: number; // Linie liegt gate-seitig VOR der ersten Bootsreihe
+  dir: 1 | -1;        // y-Richtung von der Box zum Gate
+  width: number;      // Boote pro Reihe
+}
+
+export function startBox(q: number, sizeX: number, sizeY: number): StartBox {
+  const gate = quadrantCenter(q, sizeX, sizeY);
+  const s = quadrantCenter(3 - q, sizeX, sizeY);
+  const dir: 1 | -1 = gate.y >= s.y ? 1 : -1;
+  return {
+    centerX: s.x,
+    startLineY: s.y + dir * 3,
+    dir,
+    width: Math.floor(sizeX / 3),
+  };
+}
+
+/** Grid-Position des i-ten Boots in der Startaufstellung (Reihen hinter der Linie). */
+export function startSlot(
+  i: number,
+  box: StartBox,
+  sizeX: number,
+  sizeY: number,
+): { x: number; y: number } {
+  const row = Math.floor(i / box.width);
+  const col = i % box.width;
+  const x = Math.min(sizeX - 1, Math.max(0, box.centerX - Math.floor(box.width / 2) + col));
+  const y = Math.min(sizeY - 1, Math.max(0, box.startLineY - box.dir * (1 + row)));
+  return { x, y };
+}
+
+// ---------------------------------------------------------------------------
 // Regatta-Tracking via challengeBits
 // ---------------------------------------------------------------------------
 

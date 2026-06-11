@@ -9,7 +9,7 @@ export interface ChallengeInfo {
 export const CHALLENGE_INFO: Record<number, ChallengeInfo> = {
   0: {
     title: "Regatta",
-    brief: "Be the first to reach the target quadrant — against the wind if you must.",
-    flavor: "A green target zone marks one quadrant of the sea. Every boat wants to get there first — but sailboats can't sail straight into the wind. When the target lies upwind, only those who learn to tack in zigzags will ever arrive. The wind shifts over the generations: navigators who steer by the wind survive, compass-memorizers capsize.",
+    brief: "From the start line, be first through the finish gate between the buoys.",
+    flavor: "The fleet lines up behind the start line — everyone faces the same course. The finish is a gate between two orange buoys; sailing past outside the buoys counts for nothing. And sailboats can't sail straight into the wind: when the gate lies upwind, only those who learn to tack in zigzags will ever cross it. The wind shifts over the generations — navigators who steer by the wind survive, compass-memorizers capsize.",
   },
 };

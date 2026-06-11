@@ -10,6 +10,10 @@ import {
   isInQuadrant,
   advanceSailingGeneration,
   sailingEnv,
+  finishGate,
+  isOnFinishGate,
+  startBox,
+  startSlot,
   REGATTA_FINISHED_BIT,
   REGATTA_TICK_MASK,
 } from './sailing';
@@ -108,6 +112,49 @@ describe('advanceSailingGeneration', () => {
     );
     expect(sailingEnv.targetQuadrant).toBeGreaterThanOrEqual(0);
     expect(sailingEnv.targetQuadrant).toBeLessThanOrEqual(3);
+  });
+});
+
+describe('finish gate', () => {
+  it('places a 16-cell gate centered on the quadrant center (128 grid)', () => {
+    const g = finishGate(3, 128, 128); // NE-Zentrum (96, 96)
+    expect(g.y).toBe(96);
+    expect(g.x0).toBe(88);
+    expect(g.x1).toBe(103);
+    expect(g.x1 - g.x0 + 1).toBe(16);
+  });
+  it('detects boats on the gate but not at the buoys or beside the line', () => {
+    const g = finishGate(3, 128, 128);
+    expect(isOnFinishGate(88, 96, g)).toBe(true);
+    expect(isOnFinishGate(103, 96, g)).toBe(true);
+    expect(isOnFinishGate(87, 96, g)).toBe(false);  // Boje
+    expect(isOnFinishGate(104, 96, g)).toBe(false); // Boje
+    expect(isOnFinishGate(96, 95, g)).toBe(false);  // eine Reihe daneben
+  });
+});
+
+describe('start box', () => {
+  it('lines up in the opposite quadrant facing the gate', () => {
+    const box = startBox(3, 128, 128); // Ziel NE → Start SW
+    expect(box.centerX).toBe(32);
+    expect(box.dir).toBe(1);           // Gate liegt nördlich
+    expect(box.startLineY).toBe(35);
+    expect(box.width).toBe(42);
+  });
+  it('fills rows behind the start line', () => {
+    const box = startBox(3, 128, 128);
+    const first = startSlot(0, box, 128, 128);
+    expect(first.y).toBe(34); // direkt hinter der Linie bei y=35
+    expect(first.x).toBe(11);
+    const secondRow = startSlot(box.width, box, 128, 128);
+    expect(secondRow.y).toBe(33); // eine Reihe weiter hinten
+    expect(secondRow.x).toBe(11);
+  });
+  it('points away from the gate when the target is in the south', () => {
+    const box = startBox(0, 128, 128); // Ziel SW → Start NE
+    expect(box.dir).toBe(-1);
+    const first = startSlot(0, box, 128, 128);
+    expect(first.y).toBe(box.startLineY + 1);
   });
 });
 

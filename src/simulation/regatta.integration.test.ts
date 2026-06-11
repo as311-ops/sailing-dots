@@ -8,7 +8,7 @@ describe('Regatta end-to-end', () => {
       sizeX: 64,
       sizeY: 64,
       population: 200,
-      stepsPerGeneration: 150,
+      stepsPerGeneration: 250,
       windMode: 'fixed',
       windDirection: Compass.N,
       targetQuadrant: 1, // SE — in Lee, gut erreichbar
@@ -26,9 +26,11 @@ describe('Regatta end-to-end', () => {
     const early = finisherRates.slice(0, 5).reduce((a, b) => a + b, 0) / 5;
     const late = finisherRates.slice(-5).reduce((a, b) => a + b, 0) / 5;
 
-    // Spätere Generationen müssen deutlich besser segeln als Generation 0-4
+    // Spätere Generationen müssen deutlich besser segeln als Generation 0-4.
+    // Das Gate ist ein Nadelöhr (8 Zellen auf dem 64er-Grid) — die Quote liegt
+    // daher deutlich niedriger als beim früheren Quadranten-Ziel.
     expect(late).toBeGreaterThan(early);
-    expect(late).toBeGreaterThan(0.2);
+    expect(late).toBeGreaterThan(0.15);
   });
 
   it('produces a valid state snapshot with headings and wind', () => {

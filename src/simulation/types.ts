@@ -397,14 +397,15 @@ export function createDefaultIndiv(): Indiv {
 export enum Sensor {
   WIND_REL_X = 0,  // cos des Windwinkels relativ zum Heading
   WIND_REL_Y,      // sin des Windwinkels relativ zum Heading
-  TARGET_REL_X,    // cos der Zielpeilung relativ zum Heading
-  TARGET_REL_Y,    // sin der Zielpeilung relativ zum Heading
-  TARGET_DIST,     // Distanz zum Zielzentrum (normalisiert auf Grid-Diagonale)
+  TARGET_REL_X,    // cos der Peilung zum aktuellen Kursziel (Marke/Gate) relativ zum Heading
+  TARGET_REL_Y,    // sin der Peilung zum aktuellen Kursziel relativ zum Heading
+  TARGET_DIST,     // Distanz zum aktuellen Kursziel (normalisiert auf Grid-Diagonale)
   BOUNDARY_DIST,
   SPEED,           // gleitender Mittelwert der letzten Moves
   OSC1,
   AGE,
   RANDOM,
+  OBSTACLE_FWD,    // freie Strecke voraus (Inseln/Rand), 1.0 = frei
   NUM_SENSES,
 }
 

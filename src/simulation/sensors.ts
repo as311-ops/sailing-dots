@@ -2,13 +2,19 @@
 // Alle Sensoren liefern Werte in 0.0..1.0. Winkel werden als sin/cos-Paare
 // kodiert, um die Unstetigkeit am Wraparound zu vermeiden.
 
-import { Indiv, Sensor } from './types';
+import { Indiv, Sensor, Coord } from './types';
 import { Grid } from './grid';
 import { Peeps } from './peeps';
 import { Signals } from './signals';
 import { SimParams } from './params';
 import { randomFloat } from './random';
-import { sailingEnv, compassAngleRad, quadrantCenter } from './sailing';
+import { sailingEnv, compassAngleRad, currentObjective } from './sailing';
+
+// Reichweite des Hindernis-Probes voraus
+const OBSTACLE_PROBE_DIST = 8;
+
+// Reusable Coord für den Probe (kein GC-Druck im Hot Path)
+const _probe = new Coord(0, 0);
 
 // ---------------------------------------------------------------------------
 // getSensor -- main entry point
@@ -18,7 +24,7 @@ export function getSensor(
   indiv: Indiv,
   sensorNum: Sensor,
   simStep: number,
-  _grid: Grid,
+  grid: Grid,
   _peeps: Peeps,
   _signals: Signals,
   params: SimParams,
@@ -37,7 +43,9 @@ export function getSensor(
 
     case Sensor.TARGET_REL_X:
     case Sensor.TARGET_REL_Y: {
-      const center = quadrantCenter(sailingEnv.targetQuadrant, params.sizeX, params.sizeY);
+      const center = currentObjective(
+        indiv.challengeBits, sailingEnv.targetQuadrant, params.courseLegs, params.sizeX, params.sizeY,
+      );
       const dx = center.x - indiv.loc.x;
       const dy = center.y - indiv.loc.y;
       if (dx === 0 && dy === 0) {
@@ -51,11 +59,30 @@ export function getSensor(
     }
 
     case Sensor.TARGET_DIST: {
-      const center = quadrantCenter(sailingEnv.targetQuadrant, params.sizeX, params.sizeY);
+      const center = currentObjective(
+        indiv.challengeBits, sailingEnv.targetQuadrant, params.courseLegs, params.sizeX, params.sizeY,
+      );
       const dx = center.x - indiv.loc.x;
       const dy = center.y - indiv.loc.y;
       const maxDist = Math.sqrt(params.sizeX * params.sizeX + params.sizeY * params.sizeY);
       sensorVal = Math.sqrt(dx * dx + dy * dy) / maxDist;
+      break;
+    }
+
+    case Sensor.OBSTACLE_FWD: {
+      const nc = indiv.heading.asNormalizedCoord();
+      let free = 0;
+      let cx = indiv.loc.x;
+      let cy = indiv.loc.y;
+      for (let i = 0; i < OBSTACLE_PROBE_DIST; i++) {
+        cx += nc.x;
+        cy += nc.y;
+        _probe.x = cx;
+        _probe.y = cy;
+        if (!grid.isInBounds(_probe) || grid.isBarrierAt(_probe)) break;
+        free++;
+      }
+      sensorVal = free / OBSTACLE_PROBE_DIST;
       break;
     }
 
@@ -104,4 +131,5 @@ export function getSensor(
 export const SENSOR_NAMES: ReadonlyArray<string> = [
   'WIND_REL_X', 'WIND_REL_Y', 'TARGET_REL_X', 'TARGET_REL_Y',
   'TARGET_DIST', 'BOUNDARY_DIST', 'SPEED', 'OSC1', 'AGE', 'RANDOM',
+  'OBSTACLE_FWD',
 ];

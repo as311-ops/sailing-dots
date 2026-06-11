@@ -11,6 +11,7 @@ export const SENSOR_LABELS: Record<string, string> = {
   'OSC1': 'Internal Clock',
   'AGE': 'Age',
   'RANDOM': 'Random',
+  'OBSTACLE_FWD': 'Clear Water Ahead',
   // Short forms (genome profile)
   'WIND_X': 'Wind Angle (cos)',
   'WIND_Y': 'Wind Angle (sin)',
@@ -21,6 +22,7 @@ export const SENSOR_LABELS: Record<string, string> = {
   'SPD': 'Boat Speed',
   'OSC': 'Internal Clock',
   'RND': 'Random',
+  'OBST': 'Clear Water Ahead',
 };
 
 export const ACTION_LABELS: Record<string, string> = {

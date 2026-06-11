@@ -64,7 +64,7 @@ export function createChampionSnapshot(
 const SENSOR_NAMES: Record<number, string> = {
   0: 'WIND_X', 1: 'WIND_Y', 2: 'TGT_X', 3: 'TGT_Y',
   4: 'TGT_D', 5: 'BDIST', 6: 'SPD', 7: 'OSC',
-  8: 'AGE', 9: 'RND',
+  8: 'AGE', 9: 'RND', 10: 'OBST',
 };
 
 const ACTION_NAMES: Record<number, string> = {

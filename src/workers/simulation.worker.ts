@@ -20,6 +20,9 @@ interface SimConfig {
   windDirection: number;
   windRotatePeriod: number;
   targetQuadrant: number;
+  islands: number;
+  courseLegs: number;
+  preStartTicks: number;
   responsivenessCurveKFactor: number;
 }
 
@@ -68,6 +71,9 @@ function configToParams(config: SimConfig) {
     windDirection: config.windDirection,
     windRotatePeriod: config.windRotatePeriod,
     targetQuadrant: config.targetQuadrant,
+    islands: config.islands,
+    courseLegs: config.courseLegs,
+    preStartTicks: config.preStartTicks,
     responsivenessCurveKFactor: config.responsivenessCurveKFactor,
   };
 }
@@ -245,6 +251,9 @@ self.onmessage = (e: MessageEvent<WorkerCommand>) => {
         if (c.windDirection !== undefined) simulator.params.windDirection = c.windDirection;
         if (c.windRotatePeriod !== undefined) simulator.params.windRotatePeriod = c.windRotatePeriod;
         if (c.targetQuadrant !== undefined) simulator.params.targetQuadrant = c.targetQuadrant;
+        if (c.islands !== undefined) simulator.params.islands = c.islands;
+        if (c.courseLegs !== undefined) simulator.params.courseLegs = c.courseLegs;
+        if (c.preStartTicks !== undefined) simulator.params.preStartTicks = c.preStartTicks;
         if (c.sexualReproduction !== undefined) simulator.params.sexualReproduction = c.sexualReproduction;
         if (c.chooseParentsByFitness !== undefined) simulator.params.chooseParentsByFitness = c.chooseParentsByFitness;
       }

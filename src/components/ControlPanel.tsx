@@ -24,6 +24,9 @@ export interface SimConfig {
   windDirection: number;    // Compass-Wert (7 = N)
   windRotatePeriod: number; // Generationen bis zur nächsten 45°-Drehung
   targetQuadrant: number;   // 0..3 fest, -1 = zufällig pro Generation
+  islands: number;          // Anzahl Inseln (0 = offenes Meer)
+  courseLegs: number;       // 1 = direkt, 2 = eine Marke, 3 = Dreieckskurs
+  preStartTicks: number;    // Vorstart-Phase in Ticks (0 = aus)
   responsivenessCurveKFactor: number;
 }
 
@@ -42,7 +45,16 @@ export const DEFAULT_CONFIG: SimConfig = {
   windDirection: 7, // Compass.N
   windRotatePeriod: 30,
   targetQuadrant: -1,
+  islands: 0,
+  courseLegs: 1,
+  preStartTicks: 0,
   responsivenessCurveKFactor: 4,
+};
+
+const COURSE_NAMES: Record<number, string> = {
+  1: "Sprint (direct to the gate)",
+  2: "Two legs (round 1 mark)",
+  3: "Triangle (round 2 marks)",
 };
 
 const WIND_MODE_NAMES: Record<string, string> = {
@@ -434,6 +446,38 @@ export default function ControlPanel({
                 ))}
               </select>
             </div>
+            <div className="space-y-1">
+              <label className="text-xs text-zinc-400">Course</label>
+              <select
+                value={config.courseLegs}
+                onChange={(e) => update("courseLegs", Number(e.target.value))}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-md text-xs text-zinc-200
+                           py-1.5 px-2 focus:outline-none focus:ring-1 focus:ring-zinc-600"
+              >
+                {Object.entries(COURSE_NAMES).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Slider
+              label="Islands"
+              value={config.islands}
+              min={0}
+              max={8}
+              step={1}
+              onChange={(v) => update("islands", v)}
+            />
+            <Slider
+              label="Pre-start phase"
+              value={config.preStartTicks}
+              min={0}
+              max={120}
+              step={10}
+              unit=" ticks"
+              onChange={(v) => update("preStartTicks", v)}
+            />
           </>
         )}
 

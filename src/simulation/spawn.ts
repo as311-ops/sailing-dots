@@ -16,6 +16,8 @@ import {
   advanceSailingGeneration,
   startBox,
   startSlot,
+  quadrantCenter,
+  courseMarks,
   REGATTA_FINISHED_BIT,
   REGATTA_TICK_MASK,
 } from './sailing';
@@ -29,6 +31,26 @@ export interface GenerationResult {
   avgArrivalTick: number;   // Ø Ankunfts-Tick der Finisher, -1 wenn keine
   genomeProfile: GenomeProfile | null;
   championSnapshot: ChampionSnapshot | null;
+}
+
+/**
+ * Baut die Kurs-Umgebung der Generation: Basis-Barrieren + zufällige Inseln.
+ * Inseln meiden Startbox, Gate und Marken, damit der Kurs befahrbar bleibt.
+ */
+function setupCourse(grid: Grid, params: SimParams): void {
+  grid.createBarrier(params.barrierType, params);
+  if (params.islands > 0) {
+    const q = sailingEnv.targetQuadrant;
+    const start = quadrantCenter(3 - q, params.sizeX, params.sizeY);
+    const gate = quadrantCenter(q, params.sizeX, params.sizeY);
+    const marks = courseMarks(q, params.courseLegs, params.sizeX, params.sizeY);
+    const exclusions = [
+      { x: start.x, y: start.y, r: Math.floor(params.sizeX / 4) }, // Startbox großzügig
+      { x: gate.x, y: gate.y, r: Math.floor(params.sizeX / 8) },
+      ...marks.map((m) => ({ x: m.x, y: m.y, r: Math.floor(params.sizeX / 10) })),
+    ];
+    grid.createIslands(params.islands, exclusions);
+  }
 }
 
 /**
@@ -64,7 +86,7 @@ export function initializeGeneration0(
 ): void {
   grid.zeroFill();
   signals.zeroFill();
-  grid.createBarrier(params.barrierType, params);
+  setupCourse(grid, params);
   peeps.init(params.population, grid, createStartLineupFinder(params));
 
   const wiringParams = {
@@ -209,7 +231,7 @@ function initializeNewGeneration(
 ): void {
   grid.zeroFill();
   signals.zeroFill();
-  grid.createBarrier(params.barrierType, params);
+  setupCourse(grid, params);
   peeps.init(params.population, grid, createStartLineupFinder(params));
 
   const wiringParams = {

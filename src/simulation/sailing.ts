@@ -157,9 +157,69 @@ export function startSlot(
 // Regatta-Tracking via challengeBits
 // ---------------------------------------------------------------------------
 
-/** Untere 16 Bit: Ankunfts-Tick. Bit 16: Ziel erreicht. */
+/**
+ * challengeBits-Layout:
+ * Bits 0..15: Ankunfts-Tick · Bit 16: gefinisht ·
+ * Bits 17/18: Marke 1/2 gerundet · Bit 19: Frühstart-Strafe
+ */
 export const REGATTA_TICK_MASK = 0xFFFF;
 export const REGATTA_FINISHED_BIT = 0x10000;
+export const REGATTA_MARK1_BIT = 0x20000;
+export const REGATTA_MARK2_BIT = 0x40000;
+export const REGATTA_PENALTY_BIT = 0x80000;
+
+// ---------------------------------------------------------------------------
+// Mehrbein-Kurs: Zwischenmarken, die vor dem Gate gerundet werden müssen
+// ---------------------------------------------------------------------------
+
+/** Rundungszone um eine Marke. */
+export function markRadius(sizeX: number): number {
+  return Math.max(3, Math.floor(sizeX / 32));
+}
+
+/**
+ * Zwischenmarken in Rundungs-Reihenfolge (0, 1 oder 2 Stück).
+ * legs=1: direkter Kurs · legs=2: eine Marke im Grid-Zentrum ·
+ * legs=3: zwei Marken in den beiden übrigen Quadranten — zuerst die auf
+ * Start-Höhe (Halbwind-Schenkel), dann die diagonal gegenüber.
+ */
+export function courseMarks(
+  q: number,
+  legs: number,
+  sizeX: number,
+  sizeY: number,
+): Array<{ x: number; y: number }> {
+  if (legs <= 1) return [];
+  if (legs === 2) {
+    return [{ x: Math.floor(sizeX / 2), y: Math.floor(sizeY / 2) }];
+  }
+  const s = 3 - q;
+  const a = (q & 1) | (s & 2); // x-Hälfte des Ziels, y-Hälfte des Starts
+  const b = (s & 1) | (q & 2); // x-Hälfte des Starts, y-Hälfte des Ziels
+  return [quadrantCenter(a, sizeX, sizeY), quadrantCenter(b, sizeX, sizeY)];
+}
+
+/** Anzahl bereits gerundeter Marken (Reihenfolge wird beim Setzen erzwungen). */
+export function marksRounded(challengeBits: number): number {
+  return (
+    ((challengeBits & REGATTA_MARK1_BIT) !== 0 ? 1 : 0) +
+    ((challengeBits & REGATTA_MARK2_BIT) !== 0 ? 1 : 0)
+  );
+}
+
+/** Aktuelles Navigationsziel eines Boots: nächste Marke oder das Gate-Zentrum. */
+export function currentObjective(
+  challengeBits: number,
+  q: number,
+  legs: number,
+  sizeX: number,
+  sizeY: number,
+): { x: number; y: number } {
+  const marks = courseMarks(q, legs, sizeX, sizeY);
+  const done = marksRounded(challengeBits);
+  if (done < marks.length) return marks[done];
+  return quadrantCenter(q, sizeX, sizeY);
+}
 
 // ---------------------------------------------------------------------------
 // Sailing-Umgebung (pro Generation konstant, vom Simulator gesetzt)

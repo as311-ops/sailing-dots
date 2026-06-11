@@ -13,6 +13,8 @@ export interface SimState {
   barrierLocations: Uint16Array;
   windFrom: number;
   targetQuadrant: number;
+  courseLegs: number;
+  preStartTicks: number;
   gridSize: { x: number; y: number };
 }
 
@@ -85,7 +87,8 @@ export default function SimCanvas({
         return;
       }
 
-      const { gridSize, agentLocations, agentColors, agentHeadings, barrierLocations, windFrom, targetQuadrant } = state;
+      const { gridSize, agentLocations, agentColors, agentHeadings, barrierLocations, windFrom, targetQuadrant, courseLegs, preStartTicks } = state;
+      const inPreStart = state.simStep < preStartTicks;
       const cellW = width / gridSize.x;
       const cellH = height / gridSize.y;
       // Grid-y+ = Nord, Canvas-y+ = unten → beim Zeichnen spiegeln
@@ -143,16 +146,18 @@ export default function SimCanvas({
         }
       }
 
-      // Startlinie + Ziel-Gate
-      const shapes = getChallengeOverlay(targetQuadrant, gridSize.x, gridSize.y);
-      drawOverlay(ctx, shapes, cellW, cellH, gridSize.y, `Finish ${QUADRANT_LABELS[targetQuadrant] ?? ''}`);
+      // Startlinie + Ziel-Gate + Kurs-Marken
+      const shapes = getChallengeOverlay(targetQuadrant, courseLegs, gridSize.x, gridSize.y);
+      drawOverlay(ctx, shapes, cellW, cellH, gridSize.y, `Finish ${QUADRANT_LABELS[targetQuadrant] ?? ''}`, inPreStart, preStartTicks - state.simStep);
 
-      // Barriers
-      ctx.fillStyle = "#52525b";
+      // Inseln (Barrieren) — sandfarben mit dunklerem Kern
       for (let i = 0; i < barrierLocations.length; i += 2) {
         const bx = barrierLocations[i];
         const by = barrierLocations[i + 1];
+        ctx.fillStyle = "#ca8a04";
         ctx.fillRect(bx * cellW, screenY(by), cellW, cellH);
+        ctx.fillStyle = "rgba(120, 53, 15, 0.55)";
+        ctx.fillRect(bx * cellW + cellW * 0.2, screenY(by) + cellH * 0.2, cellW * 0.6, cellH * 0.6);
       }
 
       // Boote — spawn animation: gradually reveal over 2s with ease-in curve
@@ -418,6 +423,8 @@ function drawOverlay(
   cellH: number,
   gridSizeY: number,
   label?: string,
+  inPreStart = false,
+  preStartRemaining = 0,
 ) {
   // Zellenzentrum in Screen-Koordinaten (Grid-y+ = Nord → spiegeln)
   const px = (gx: number) => gx * cellW + cellW / 2;
@@ -439,8 +446,9 @@ function drawOverlay(
       }
 
       case 'startline': {
-        ctx.strokeStyle = "rgba(250, 250, 250, 0.45)";
-        ctx.lineWidth = 1.5;
+        // Vorstart: Linie leuchtet amber und zählt den Countdown herunter
+        ctx.strokeStyle = inPreStart ? "rgba(251, 191, 36, 0.85)" : "rgba(250, 250, 250, 0.45)";
+        ctx.lineWidth = inPreStart ? 2.5 : 1.5;
         ctx.setLineDash([5, 5]);
         ctx.beginPath();
         ctx.moveTo(px(shape.x1), py(shape.y1));
@@ -448,10 +456,13 @@ function drawOverlay(
         ctx.stroke();
         ctx.setLineDash([]);
 
-        ctx.font = "9px ui-sans-serif, system-ui, sans-serif";
+        ctx.font = inPreStart
+          ? "bold 10px ui-monospace, monospace"
+          : "9px ui-sans-serif, system-ui, sans-serif";
         ctx.textAlign = "center";
-        ctx.fillStyle = "rgba(250, 250, 250, 0.5)";
-        ctx.fillText("START", (px(shape.x1) + px(shape.x2)) / 2, py(shape.y1) - 6);
+        ctx.fillStyle = inPreStart ? "rgba(251, 191, 36, 0.95)" : "rgba(250, 250, 250, 0.5)";
+        const text = inPreStart ? `PRE-START ${preStartRemaining}` : "START";
+        ctx.fillText(text, (px(shape.x1) + px(shape.x2)) / 2, py(shape.y1) - 6);
         break;
       }
 
@@ -464,6 +475,36 @@ function drawOverlay(
         ctx.arc(px(shape.cx), py(shape.cy), r, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
+        break;
+      }
+
+      case 'mark': {
+        // Zu rundende Kurs-Marke: Boje mit Rundungszone und Nummer
+        const cx = px(shape.cx);
+        const cy = py(shape.cy);
+        ctx.strokeStyle = "rgba(251, 146, 60, 0.45)";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.arc(cx, cy, shape.r * cellW, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const r = Math.max(cellW * 0.9, 4);
+        ctx.fillStyle = "rgba(251, 146, 60, 0.95)";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = `bold ${Math.max(r * 1.1, 8)}px ui-monospace, monospace`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "rgba(9, 9, 11, 0.9)";
+        ctx.fillText(String(shape.n), cx, cy);
+        ctx.textBaseline = "alphabetic";
         break;
       }
     }

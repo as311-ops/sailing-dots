@@ -16,7 +16,14 @@ import {
   advanceSailingGeneration,
   finishGate,
   isOnFinishGate,
+  startBox,
+  courseMarks,
+  marksRounded,
+  markRadius,
   REGATTA_FINISHED_BIT,
+  REGATTA_MARK1_BIT,
+  REGATTA_MARK2_BIT,
+  REGATTA_PENALTY_BIT,
 } from './sailing';
 
 // ---------------------------------------------------------------------------
@@ -58,6 +65,8 @@ export interface SimState {
   barrierLocations: Uint16Array;
   windFrom: number;          // Compass-Wert der Windquelle
   targetQuadrant: number;    // 0..3
+  courseLegs: number;        // 1..3, für Marken-Rendering
+  preStartTicks: number;     // Vorstart-Dauer, für Startlinien-Rendering
   gridSize: { x: number; y: number };
 }
 
@@ -238,6 +247,8 @@ export class Simulator {
       barrierLocations,
       windFrom: sailingEnv.windFrom as number,
       targetQuadrant: sailingEnv.targetQuadrant,
+      courseLegs: this.params.courseLegs,
+      preStartTicks: this.params.preStartTicks,
       gridSize: { x: this.params.sizeX, y: this.params.sizeY },
     };
   }
@@ -343,14 +354,44 @@ export class Simulator {
     this.peeps.drainDeathQueue(this.grid);
     this.peeps.drainMoveQueue(this.grid);
 
-    // Regatta: erstmaliges Durchfahren des Ziel-Gates markieren
+    const preStart = this.params.preStartTicks;
+
+    // Startschuss: Boote, die jetzt jenseits der Startlinie stehen, kassieren
+    // die Frühstart-Strafe (sie segeln weiter, ihr Score wird gestutzt)
+    if (preStart > 0 && this.simStep === preStart) {
+      const box = startBox(sailingEnv.targetQuadrant, this.params.sizeX, this.params.sizeY);
+      for (let i = 1; i <= this.peeps.population; i++) {
+        const indiv = this.peeps.getIndiv(i);
+        if (!indiv.alive) continue;
+        if ((indiv.loc.y - box.startLineY) * box.dir > 0) {
+          indiv.challengeBits |= REGATTA_PENALTY_BIT;
+        }
+      }
+    }
+
+    // Vor dem Startschuss wird nicht gewertet — die Flotte manövriert nur
+    if (this.simStep < preStart) return;
+
+    // Regatta: Marken in Reihenfolge runden, dann durchs Ziel-Gate
     const gate = finishGate(sailingEnv.targetQuadrant, this.params.sizeX, this.params.sizeY);
+    const marks = courseMarks(sailingEnv.targetQuadrant, this.params.courseLegs, this.params.sizeX, this.params.sizeY);
+    const mRadius = markRadius(this.params.sizeX);
+
     for (let i = 1; i <= this.peeps.population; i++) {
       const indiv = this.peeps.getIndiv(i);
       if (!indiv.alive) continue;
       if (indiv.challengeBits & REGATTA_FINISHED_BIT) continue;
-      if (isOnFinishGate(indiv.loc.x, indiv.loc.y, gate)) {
-        indiv.challengeBits = REGATTA_FINISHED_BIT | Math.min(0xFFFF, this.simStep);
+
+      const done = marksRounded(indiv.challengeBits);
+      if (done < marks.length) {
+        const m = marks[done];
+        const dx = indiv.loc.x - m.x;
+        const dy = indiv.loc.y - m.y;
+        if (Math.sqrt(dx * dx + dy * dy) <= mRadius) {
+          indiv.challengeBits |= done === 0 ? REGATTA_MARK1_BIT : REGATTA_MARK2_BIT;
+        }
+      } else if (isOnFinishGate(indiv.loc.x, indiv.loc.y, gate)) {
+        indiv.challengeBits |= REGATTA_FINISHED_BIT | Math.min(0xFFFF, this.simStep);
       }
     }
   }

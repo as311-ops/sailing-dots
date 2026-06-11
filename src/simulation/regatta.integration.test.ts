@@ -33,6 +33,33 @@ describe('Regatta end-to-end', () => {
     expect(late).toBeGreaterThan(0.15);
   });
 
+  it('runs a full-feature course (islands, triangle, pre-start) without errors', () => {
+    const sim = new Simulator({
+      sizeX: 64,
+      sizeY: 64,
+      population: 150,
+      stepsPerGeneration: 300,
+      windMode: 'random',
+      targetQuadrant: -1,
+      islands: 4,
+      courseLegs: 3,
+      preStartTicks: 30,
+    });
+    sim.init();
+
+    for (let gen = 0; gen < 8; gen++) {
+      const result = sim.runGeneration();
+      expect(result.finisherRate).toBeGreaterThanOrEqual(0);
+    }
+
+    const state = sim.getState();
+    expect(state.population).toBeGreaterThan(0);
+    expect(state.courseLegs).toBe(3);
+    expect(state.preStartTicks).toBe(30);
+    // Inseln vorhanden (Barrier-Zellen werden ans Rendering gemeldet)
+    expect(state.barrierLocations.length).toBeGreaterThan(0);
+  });
+
   it('produces a valid state snapshot with headings and wind', () => {
     const sim = new Simulator({
       sizeX: 32,

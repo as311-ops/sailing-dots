@@ -249,6 +249,44 @@ export class Grid {
         throw new Error(`Unknown barrier type: ${barrierType}`);
     }
   }
+
+  /**
+   * Streut runde Inseln (Barrier-Blobs) übers Meer. Kandidaten, die einer
+   * Ausschlusszone (Startbox, Gate, Marken) zu nahe kommen, werden verworfen.
+   * Ergänzt bestehende Barrieren; createBarrier() vorher aufrufen.
+   */
+  createIslands(
+    count: number,
+    exclusions: ReadonlyArray<{ x: number; y: number; r: number }>,
+  ): void {
+    const addBarrier = (loc: Coord): void => {
+      if (this.isEmptyAt(loc)) {
+        this.set(loc, BARRIER);
+        this._barrierLocations.push(new Coord(loc.x, loc.y));
+      }
+    };
+
+    const margin = 6;
+    for (let i = 0; i < count; i++) {
+      const radius = 2 + randomUint(0, 2); // 2..4
+      let center: Coord | null = null;
+      for (let tries = 0; tries < 50 && !center; tries++) {
+        const cand = new Coord(
+          randomUint(margin, this._sizeX - 1 - margin),
+          randomUint(margin, this._sizeY - 1 - margin),
+        );
+        const clear = exclusions.every((e) => {
+          const dx = cand.x - e.x;
+          const dy = cand.y - e.y;
+          return Math.sqrt(dx * dx + dy * dy) >= e.r + radius;
+        });
+        if (clear) center = cand;
+      }
+      if (!center) continue;
+      visitNeighborhood(center, radius, this._sizeX, this._sizeY, addBarrier);
+      this._barrierCenters.push(center);
+    }
+  }
 }
 
 /**

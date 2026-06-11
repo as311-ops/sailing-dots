@@ -33,6 +33,9 @@ export interface SimParams {
   windDirection: Compass;     // Startrichtung, aus der der Wind weht
   windRotatePeriod: number;   // Generationen bis zur nächsten 45°-Drehung (windMode 'rotate')
   targetQuadrant: number;     // 0..3 fest, -1 = zufällig pro Generation
+  islands: number;            // Anzahl Inseln (0 = offenes Meer), pro Generation neu gewürfelt
+  courseLegs: number;         // 1 = direkt, 2 = eine Marke, 3 = Dreieckskurs mit zwei Marken
+  preStartTicks: number;      // Vorstart-Phase in Ticks (0 = aus); Frühstarter werden bestraft
 
   // Behavior
   populationSensorRadius: number;
@@ -108,6 +111,9 @@ export const DEFAULT_PARAMS: SimParams = {
   windDirection: Compass.N,
   windRotatePeriod: 30,
   targetQuadrant: -1,
+  islands: 0,
+  courseLegs: 1,
+  preStartTicks: 0,
 
   populationSensorRadius: 2.5,
   signalSensorRadius: 2.0,

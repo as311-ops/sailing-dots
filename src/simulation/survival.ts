@@ -9,9 +9,11 @@ import { type Indiv, Challenge } from './types';
 import type { Grid } from './grid';
 import {
   sailingEnv,
-  quadrantCenter,
+  currentObjective,
+  marksRounded,
   REGATTA_FINISHED_BIT,
   REGATTA_TICK_MASK,
+  REGATTA_PENALTY_BIT,
 } from './sailing';
 
 // ---------------------------------------------------------------------------
@@ -32,11 +34,15 @@ export interface SurvivalParams {
   sizeY: number;
   challenge: Challenge;
   stepsPerGeneration: number;
+  courseLegs: number;
 }
 
 // Mindest-Score fürs Ankommen — liegt über dem Maximum des Trostpreises (0.2)
 const FINISHER_SCORE_FLOOR = 0.25;
 const CONSOLATION_FACTOR = 0.2;
+// Frühstart: Score wird gestutzt, aber Ankommen schlägt weiterhin den Trostpreis
+const PENALTY_FACTOR = 0.6;
+const PENALIZED_FINISHER_FLOOR = 0.21;
 
 // ---------------------------------------------------------------------------
 // passedSurvivalCriterion
@@ -52,20 +58,30 @@ export function passedSurvivalCriterion(
     return { passed: false, score: 0.0 };
   }
 
+  const penalized = (indiv.challengeBits & REGATTA_PENALTY_BIT) !== 0;
+
   if (indiv.challengeBits & REGATTA_FINISHED_BIT) {
     const arrivalTick = indiv.challengeBits & REGATTA_TICK_MASK;
-    const score = Math.max(
+    const base = Math.max(
       FINISHER_SCORE_FLOOR,
       1.0 - arrivalTick / params.stepsPerGeneration,
     );
+    const score = penalized
+      ? Math.max(PENALIZED_FINISHER_FLOOR, base * PENALTY_FACTOR)
+      : base;
     return { passed: true, score };
   }
 
-  const center = quadrantCenter(sailingEnv.targetQuadrant, params.sizeX, params.sizeY);
-  const dx = center.x - indiv.loc.x;
-  const dy = center.y - indiv.loc.y;
+  // Trostpreis: Kursfortschritt = gerundete Marken + Nähe zum aktuellen Ziel
+  const legs = Math.max(1, params.courseLegs);
+  const objective = currentObjective(
+    indiv.challengeBits, sailingEnv.targetQuadrant, legs, params.sizeX, params.sizeY,
+  );
+  const dx = objective.x - indiv.loc.x;
+  const dy = objective.y - indiv.loc.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
   const maxDist = Math.sqrt(params.sizeX * params.sizeX + params.sizeY * params.sizeY);
-  const score = CONSOLATION_FACTOR * (1.0 - dist / maxDist);
+  const progress = (marksRounded(indiv.challengeBits) + (1.0 - dist / maxDist)) / legs;
+  const score = CONSOLATION_FACTOR * progress * (penalized ? PENALTY_FACTOR : 1);
   return { passed: score > 0, score };
 }

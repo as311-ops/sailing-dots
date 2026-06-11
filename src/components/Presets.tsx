@@ -59,6 +59,51 @@ export const PRESETS: Preset[] = [
       maxNumberNeurons: 8,
     },
   },
+  {
+    name: "Island Hopping",
+    description: "Six islands litter the course — and they reshuffle every race. Learn to read the water ahead.",
+    config: {
+      windMode: 'rotate',
+      windDirection: 7,
+      windRotatePeriod: 30,
+      targetQuadrant: -1,
+      islands: 6,
+      population: 1000,
+      stepsPerGeneration: 500,
+      maxGenerations: 500,
+      genomeInitialLength: 32,
+      maxNumberNeurons: 8,
+    },
+  },
+  {
+    name: "Triangle Course",
+    description: "Round mark 1, then mark 2, then cross the gate. A real regatta course with three legs.",
+    config: {
+      windMode: 'fixed',
+      windDirection: 7,
+      targetQuadrant: -1,
+      courseLegs: 3,
+      population: 1000,
+      stepsPerGeneration: 800,
+      maxGenerations: 1000,
+      genomeInitialLength: 40,
+      maxNumberNeurons: 10,
+    },
+  },
+  {
+    name: "Match Race",
+    description: "60 ticks of pre-start jockeying — cross the line early and your score gets slashed.",
+    config: {
+      windMode: 'random',
+      targetQuadrant: -1,
+      preStartTicks: 60,
+      population: 1000,
+      stepsPerGeneration: 500,
+      maxGenerations: 800,
+      genomeInitialLength: 32,
+      maxNumberNeurons: 8,
+    },
+  },
 ];
 
 interface PresetsProps {

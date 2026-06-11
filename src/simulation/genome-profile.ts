@@ -23,7 +23,7 @@ export interface GenomeProfile {
 const SENSOR_NAMES = [
   'WIND_X', 'WIND_Y', 'TGT_X', 'TGT_Y',
   'TGT_D', 'BDIST', 'SPD', 'OSC',
-  'AGE', 'RND',
+  'AGE', 'RND', 'OBST',
 ];
 
 const ACTION_NAMES = ['TURN_L', 'TURN_R'];

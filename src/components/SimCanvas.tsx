@@ -91,12 +91,42 @@ export default function SimCanvas({
       // Grid-y+ = Nord, Canvas-y+ = unten → beim Zeichnen spiegeln
       const screenY = (gy: number) => (gridSize.y - 1 - gy) * cellH;
 
-      // Background — dunkles Meer
-      ctx.fillStyle = "#020617";
+      // Background — Meer mit Tiefenverlauf
+      const sea = ctx.createLinearGradient(0, 0, 0, height);
+      sea.addColorStop(0, "#0c4a6e");
+      sea.addColorStop(0.5, "#075985");
+      sea.addColorStop(1, "#0c4a6e");
+      ctx.fillStyle = sea;
       ctx.fillRect(0, 0, width, height);
 
+      // ASCII-Wellen — deterministisch platziert, driften langsam mit dem Wind
+      {
+        const [wfx, wfy] = COMPASS_XY[windFrom] ?? [0, 1];
+        const wlen = Math.sqrt(wfx * wfx + wfy * wfy) || 1;
+        const driftSpeed = 0.4;
+        const driftX = (-wfx / wlen) * state.simStep * driftSpeed;
+        const driftY = (wfy / wlen) * state.simStep * driftSpeed;
+        const waveFont = Math.max(width / 40, 12);
+        const spacingX = waveFont * 3.2;
+        const spacingY = waveFont * 2.4;
+        ctx.font = `${waveFont}px ui-monospace, monospace`;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "rgba(186, 230, 253, 0.14)";
+        const mod = (v: number, m: number) => ((v % m) + m) % m;
+        for (let row = -1; row * spacingY < height + spacingY; row++) {
+          const stagger = (row * 137) % spacingX;
+          const wy = mod(row * spacingY + driftY, height + spacingY) - spacingY / 2;
+          for (let col = -1; col * spacingX < width + spacingX; col++) {
+            const wx = mod(col * spacingX + stagger + driftX, width + spacingX) - spacingX / 2;
+            ctx.fillText((row + col) % 3 === 0 ? "≈" : "~", wx, wy);
+          }
+        }
+        ctx.textBaseline = "alphabetic";
+      }
+
       // Subtle grid lines
-      ctx.strokeStyle = "#0f172a";
+      ctx.strokeStyle = "rgba(186, 230, 253, 0.05)";
       ctx.lineWidth = 0.5;
       if (cellW > 4) {
         for (let x = 0; x <= gridSize.x; x++) {

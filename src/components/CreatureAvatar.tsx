@@ -9,16 +9,15 @@ interface CreatureAvatarProps {
 }
 
 /**
- * ASCII creature visualization that reflects genome traits.
+ * ASCII sailboat visualization that reflects genome traits.
  *
  * Anatomy mapping:
- * - Head size = neuron count
- * - Eyes = dominant sensors (what the creature "sees")
- * - Antennae = signal/pheromone sensors
- * - Body width = genome length
- * - Legs/movement = dominant action type
- * - Tail/emission = signal emission
- * - Posture = responsiveness
+ * - Sail height = neuron count, sail color = responsiveness
+ * - Pennant at masthead = wind sense
+ * - Diamonds in the sail foot = neurons
+ * - Hull width = genome length
+ * - Portholes = dominant sensors
+ * - Waves = rudder activity (steering vs. drifting)
  */
 export default function CreatureAvatar({ info, profile, label, compact = false }: CreatureAvatarProps) {
   const traits = info
@@ -183,7 +182,7 @@ function traitsFromProfile(profile: GenomeProfile): CreatureTraits {
   };
 }
 
-// --- ASCII creature builder ---
+// --- ASCII sailboat builder ---
 
 function buildCreature(t: CreatureTraits): CreatureLine[] {
   const c = (char: string, color: string): ColorChar => ({ char, color });
@@ -193,70 +192,53 @@ function buildCreature(t: CreatureTraits): CreatureLine[] {
   const VL = 'text-violet-400';
   const AM = 'text-amber-400';
   const EM = 'text-emerald-400';
-  const RD = 'text-red-400';
   const YL = 'text-yellow-300';
 
   const lines: CreatureLine[] = [];
 
-  // --- Antennae (signal/barrier sensors) ---
-  if (t.hasSignalSense || t.hasBarrierSense) {
-    const left = t.hasSignalSense ? [c('~', YL), c('\\', G)] : [c(' ', G), c(' ', G)];
-    const right = t.hasBarrierSense ? [c('/', G), c('!', RD)] : [c(' ', G), c(' ', G)];
-    lines.push({ chars: [c('  ', G), ...left, c('  ', G), ...right, c(' ', G)], anim: 'animate-antenna' });
-  }
-
-  // --- Emission cloud ---
-  if (t.emitsSignal) {
-    lines.push({ chars: [c('    ', G), c('░░░', YL), c('   ', G)] });
-  }
-
-  // --- Eyes (sensors) ---
-  const eyeCount = [t.hasLocationSense, t.hasBoundarySense, t.hasPopulationSense, t.hasAgeSense].filter(Boolean).length;
-  let eyes: ColorChar[];
-  if (eyeCount >= 3) {
-    eyes = [c(' ', G), c('◉', CY), c('◉', CY), c('◉', CY), c(' ', G)];
-  } else if (eyeCount >= 2) {
-    eyes = [c(' ', G), c(' ◉', CY), c(' ', G), c('◉ ', CY), c(' ', G)];
+  // --- Windfähnchen am Masttop (Wind-Sinn) ---
+  if (t.hasSignalSense) {
+    lines.push({ chars: [c('   ', G), c('~', YL), c('  ', G), c('≋', CY)], anim: 'animate-antenna' });
   } else {
-    eyes = [c(' ', G), c(' ', G), c('◉', CY), c(' ', G), c(' ', G)];
+    lines.push({ chars: [c('   ', G), c('·', G)] });
   }
-  if (t.hasRandomSense) {
-    eyes.push(c('?', AM));
+
+  // --- Mast + Segel (Segelgröße = Hirngröße) ---
+  const sailRows = Math.min(2 + Math.ceil(t.neuronCount / 3), 5);
+  for (let row = 1; row <= sailRows; row++) {
+    const isFoot = row === sailRows;
+    const inner = isFoot
+      ? '_'.repeat(row - 1)
+      : ' '.repeat(row - 1);
+    const sailColor = t.responsiveness > 0.6 ? EM : t.responsiveness > 0.3 ? AM : G;
+    if (isFoot && t.neuronCount > 0) {
+      // Neuronen sitzen als ◆ im Segelfuß
+      const diamonds = '◆'.repeat(Math.min(t.neuronCount, row));
+      lines.push({ chars: [c('   ', G), c('|', W), c(diamonds, VL), c('\\', sailColor)] });
+    } else {
+      lines.push({ chars: [c('   ', G), c('|', W), c(inner, sailColor), c('\\', sailColor)] });
+    }
   }
-  lines.push({ chars: eyes, anim: 'animate-blink' });
 
-  // --- Head (neuron count) ---
-  const headWidth = Math.min(t.neuronCount + 2, 8);
-  const headChars = '█'.repeat(headWidth);
-  const headPad = ' '.repeat(Math.max(0, Math.floor((9 - headWidth) / 2)));
-  lines.push({ chars: [c(headPad, G), c('╔', VL), c(headChars, VL), c('╗', VL)] });
-
-  // --- Brain (neuron details) ---
-  const brainSymbols = '◆'.repeat(Math.min(t.neuronCount, 6));
-  const brainPad = ' '.repeat(Math.max(0, Math.floor((headWidth - t.neuronCount) / 2)));
-  lines.push({ chars: [c(headPad, G), c('║', VL), c(brainPad, G), c(brainSymbols, VL), c(brainPad.length > 0 ? brainPad : ' ', G), c('║', VL)] });
-  lines.push({ chars: [c(headPad, G), c('╚', VL), c('═'.repeat(headWidth), VL), c('╝', VL)] });
-
-  // --- Body (genome length) ---
-  const bodyWidth = Math.min(Math.floor(t.genomeLength / 6) + 2, 7);
-  const bodyPad = ' '.repeat(Math.max(0, Math.floor((9 - bodyWidth) / 2)));
-  const bodyChar = t.responsiveness > 0.6 ? '▓' : t.responsiveness > 0.3 ? '▒' : '░';
-  lines.push({ chars: [c(bodyPad, G), c(' ', G), c(bodyChar.repeat(bodyWidth), EM), c(' ', G)] });
-  lines.push({ chars: [c(bodyPad, G), c(' ', G), c(bodyChar.repeat(bodyWidth), EM), c(' ', G)] });
-
-  // --- Legs/movement ---
-  const legPad = ' '.repeat(Math.max(0, Math.floor((9 - bodyWidth) / 2)));
-  if (t.movesForward) {
-    lines.push({ chars: [c(legPad, G), c(' ╿', W), c(' '.repeat(Math.max(1, bodyWidth - 2)), G), c('╿ ', W)], anim: 'animate-legs' });
-    lines.push({ chars: [c(legPad, G), c(' │', W), c(' '.repeat(Math.max(1, bodyWidth - 2)), G), c('│ ', W)], anim: 'animate-legs' });
-  } else if (t.movesSideways) {
-    lines.push({ chars: [c(legPad, G), c('╾', AM), c('─'.repeat(bodyWidth), AM), c('╼', AM)], anim: 'animate-legs' });
-  } else if (t.movesRandom) {
-    lines.push({ chars: [c(legPad, G), c(' ╱', W), c(' '.repeat(Math.max(1, bodyWidth - 2)), G), c('╲ ', W)], anim: 'animate-legs' });
-    lines.push({ chars: [c(legPad, G), c('╱', W), c(' '.repeat(Math.max(1, bodyWidth)), G), c('╲', W)], anim: 'animate-legs' });
-  } else {
-    lines.push({ chars: [c(legPad, G), c(' ╵', G), c(' '.repeat(Math.max(1, bodyWidth - 2)), G), c('╵ ', G)] });
+  // --- Rumpf (Breite = Genomlänge, Bullaugen = Sinne) ---
+  const hullWidth = Math.min(Math.floor(t.genomeLength / 8) + 5, 9);
+  const portholeCount = Math.min(
+    [t.hasLocationSense, t.hasBoundarySense, t.hasPopulationSense, t.hasAgeSense].filter(Boolean).length,
+    Math.floor(hullWidth / 2),
+  );
+  const hullChars: ColorChar[] = [c(' ', G), c('\\', VL)];
+  for (let i = 0; i < hullWidth; i++) {
+    const isPorthole = i % 2 === 1 && (i - 1) / 2 < portholeCount;
+    hullChars.push(isPorthole ? c('◉', CY) : c('_', VL));
   }
+  hullChars.push(c('/', VL));
+  if (t.hasRandomSense) hullChars.push(c('?', AM));
+  lines.push({ chars: hullChars, anim: 'animate-blink' });
+
+  // --- Wellen (Ruder-Aktivität = bewegte See) ---
+  const waveWidth = hullWidth + 5;
+  const waveChar = t.movesSideways ? '~' : '-';
+  lines.push({ chars: [c(waveChar.repeat(waveWidth), CY)], anim: 'animate-legs' });
 
   return lines;
 }
@@ -274,12 +256,11 @@ function describeAnatomy(t: CreatureTraits): AnatomyLine[] {
 
   // Senses
   const senses: string[] = [];
-  if (t.hasLocationSense) senses.push('Location');
-  if (t.hasBoundarySense) senses.push('Boundary');
-  if (t.hasPopulationSense) senses.push('Population');
-  if (t.hasBarrierSense) senses.push('Barriers');
-  if (t.hasAgeSense) senses.push('Age');
-  if (t.hasSignalSense) senses.push('Scent');
+  if (t.hasSignalSense) senses.push('Wind');
+  if (t.hasLocationSense) senses.push('Target bearing');
+  if (t.hasBoundarySense) senses.push('Shore');
+  if (t.hasPopulationSense) senses.push('Speed');
+  if (t.hasAgeSense) senses.push('Race clock');
   if (t.hasRandomSense) senses.push('Intuition');
 
   if (senses.length > 0) {
@@ -297,24 +278,15 @@ function describeAnatomy(t: CreatureTraits): AnatomyLine[] {
     color: 'text-violet-400',
   });
 
-  // Movement
-  const moves: string[] = [];
-  if (t.movesForward) moves.push('Forward');
-  if (t.movesSideways) moves.push('Sideways');
-  if (t.movesRandom) moves.push('Random');
-  if (moves.length > 0) {
+  // Steering
+  if (t.movesSideways) {
     lines.push({
-      icon: '↗',
-      text: `Movement: ${moves.join(', ')}`,
+      icon: '⛵',
+      text: 'Steering: actively works the rudder',
       color: 'text-amber-400',
     });
   } else {
-    lines.push({ icon: '·', text: 'Movement: No dominant direction', color: 'text-zinc-600' });
-  }
-
-  // Special abilities
-  if (t.emitsSignal) {
-    lines.push({ icon: '~', text: 'Leaves scent trails for nearby creatures', color: 'text-yellow-300' });
+    lines.push({ icon: '·', text: 'Steering: drifts with locked rudder', color: 'text-zinc-600' });
   }
 
   // Responsiveness

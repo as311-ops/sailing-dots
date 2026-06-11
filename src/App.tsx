@@ -25,14 +25,7 @@ import { genomeFromHash, genomeShareUrl, clearGenomeHash } from "./simulation/ge
 import { playStart, playGenerationTick, playBreakthrough, playWipeout, playVictory, playShare } from "./simulation/sounds";
 import type { Genome } from "./simulation/types";
 
-const CHALLENGE_LABELS: Record<number, string> = {
-  0: "Circle", 1: "Right Half", 2: "Right Quarter", 3: "String",
-  4: "Center", 5: "Center", 6: "Corners", 7: "Corners",
-  8: "Migration", 9: "Center Sparse", 10: "Left Eighth",
-  11: "Radioactive Walls", 12: "At Wall", 13: "Touch Wall",
-  14: "East-West", 15: "Near Barrier", 16: "Pairs", 17: "Sequence", 18: "Altruism",
-  19: "The Tide", 20: "Hunt or Hide", 21: "Hot Potato", 22: "Boomerang",
-};
+const CHALLENGE_LABEL = "Regatta";
 
 const IS_SCREENSAVER = new URLSearchParams(window.location.search).has("screensaver");
 const SCREENSAVER_CYCLE_GENS = 100;
@@ -107,7 +100,7 @@ function SsKpi({ banner }: { banner: { survivors: number; population: number; st
           <div className={`text-xl font-bold font-mono tabular-nums leading-tight ${color} transition-colors duration-700`}>
             {survivors.toLocaleString()} <span className="text-zinc-600 font-normal text-base">/ {population.toLocaleString()}</span>
           </div>
-          <div className="text-[10px] text-zinc-500 uppercase tracking-widest mt-0.5">survival rate</div>
+          <div className="text-[10px] text-zinc-500 uppercase tracking-widest mt-0.5">finisher rate</div>
           {streak > 1 && (
             <div className="text-[10px] text-zinc-600 font-mono mt-1.5">{streak} gens streak</div>
           )}
@@ -213,7 +206,7 @@ export default function App() {
   useEffect(() => {
     if (IS_SCREENSAVER || seedGenome) return;
     try {
-      if (!localStorage.getItem('darwins_arena_tutorial_seen')) {
+      if (!localStorage.getItem('sailing_dots_tutorial_seen')) {
         tutorialFromSplash.current = true;
         setShowTutorial(true);
       }
@@ -246,7 +239,7 @@ export default function App() {
       prevSurvivors: prevStats?.survivors ?? 0,
       prevDiversity: prevStats?.diversity ?? 0,
       prevProfile: prevProfileRef.current,
-      challengeName: CHALLENGE_LABELS[config.challenge] ?? 'Unknown',
+      challengeName: CHALLENGE_LABEL,
     });
 
     if (lines.length > 0) {
@@ -267,7 +260,7 @@ export default function App() {
         i === history.length - 1 ? { ...h, genomeProfile: genomeProfile } : h
       );
       const s = generateSummary({
-        challengeName: CHALLENGE_LABELS[config.challenge] ?? 'Unknown',
+        challengeName: CHALLENGE_LABEL,
         population: config.population,
         totalGenerations: history.length,
         history: historyForSummary,
@@ -298,7 +291,7 @@ export default function App() {
           i === history.length - 1 ? { ...h, genomeProfile: genomeProfile } : h
         );
         const s = generateSummary({
-          challengeName: CHALLENGE_LABELS[config.challenge] ?? 'Unknown',
+          challengeName: CHALLENGE_LABEL,
           population: config.population,
           totalGenerations: history.length,
           history: historyForSummary,
@@ -358,7 +351,7 @@ export default function App() {
 
   const handleTutorialFinish = useCallback((presetConfig?: SimConfig) => {
     try {
-      localStorage.setItem('darwins_arena_tutorial_seen', '1');
+      localStorage.setItem('sailing_dots_tutorial_seen', '1');
     } catch { /* localStorage nicht verfügbar */ }
     setShowTutorial(false);
     if (presetConfig) {
@@ -419,8 +412,6 @@ export default function App() {
           state={state}
           width={windowSize.w}
           height={windowSize.h}
-          challenge={config.challenge}
-          stepsPerGeneration={config.stepsPerGeneration}
           running={running}
         />
         {/* Screen flash for wipeout / victory */}
@@ -448,7 +439,7 @@ export default function App() {
             <div className="text-[9px] text-zinc-700 font-mono uppercase tracking-widest mt-0.5">active agents</div>
           </div>
           <div className="text-right">
-            <div className="text-[10px] text-zinc-600 font-mono">Darwin's Arena</div>
+            <div className="text-[10px] text-zinc-600 font-mono">Sailing Dots</div>
             <div className="text-[9px] text-zinc-700 font-mono">{presetName} · Gen {state?.generation ?? 0}</div>
           </div>
         </div>
@@ -506,10 +497,10 @@ export default function App() {
           <DarwinLogo size={32} />
         </button>
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Darwin's Arena</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Sailing Dots</h1>
           <p className="text-xs text-zinc-500 mt-1">
-            Natural selection in real time
-            <span className="text-zinc-600 ml-2">— Click on a Darwin-Dot</span>
+            Evolution under sail — neural networks learn to tack
+            <span className="text-zinc-600 ml-2">— Click the canvas to pause</span>
           </p>
         </div>
         <div className="ml-auto">
@@ -518,7 +509,7 @@ export default function App() {
             className="rounded-lg border border-zinc-800 bg-zinc-900 px-2.5 py-1.5
                        text-zinc-500 hover:text-zinc-200 hover:border-zinc-700
                        text-xs font-mono transition-colors"
-            title="How does Darwin's Arena work?"
+            title="How does Sailing Dots work?"
           >
             ?
           </button>
@@ -528,13 +519,11 @@ export default function App() {
       {isNarrow ? (
         /* --- Mobile / Narrow: single column --- */
         <div className="flex flex-col gap-4 mx-auto" style={{ maxWidth: fullW }}>
-          <ChallengeInfo challenge={config.challenge} />
+          <ChallengeInfo challenge={0} />
           <SimCanvas
             state={state}
             width={canvasSize}
             height={canvasSize}
-            challenge={config.challenge}
-            stepsPerGeneration={config.stepsPerGeneration}
             running={running}
             onToggle={handleToggle}
           />
@@ -547,13 +536,11 @@ export default function App() {
         /* --- Desktop: two columns --- */
         <div className="flex gap-5 items-start">
           <div className="flex flex-col gap-4 flex-shrink-0" style={{ width: canvasSize }}>
-            <ChallengeInfo challenge={config.challenge} />
+            <ChallengeInfo challenge={0} />
             <SimCanvas
               state={state}
               width={canvasSize}
               height={canvasSize}
-              challenge={config.challenge}
-              stepsPerGeneration={config.stepsPerGeneration}
               running={running}
               onToggle={handleToggle}
             />

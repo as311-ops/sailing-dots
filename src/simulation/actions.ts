@@ -1,25 +1,17 @@
-// actions.ts -- All 16 action implementations + KILL_FORWARD
-// Ported from biosim4 executeActions.cpp
+// actions.ts -- Segel-Aktionen: Drehen (TURN_LEFT/TURN_RIGHT) + Auto-Vortrieb
+// Das Boot segelt jeden Tick automatisch in Heading-Richtung; die
+// Move-Wahrscheinlichkeit kommt aus der Polartabelle (sailing.ts).
 
-import { Indiv, Action, Coord, Dir } from './types';
+import { Indiv, Action, Coord } from './types';
 import { Grid } from './grid';
 import { Peeps } from './peeps';
 import { Signals } from './signals';
 import { SimParams } from './params';
-import { randomFloat, randomUint } from './random';
+import { randomFloat } from './random';
+import { polarSpeed, sailingEnv } from './sailing';
 
-// 8-direction normalized coords as flat integer pairs [x0,y0, x1,y1, ...] — compass order SW,S,SE,W,E,NW,N,NE
-// Avoids Dir.random8().asNormalizedCoord() (2 allocations) in MOVE_RANDOM hot path
-const RANDOM8_XY = new Int8Array([
-  -1,-1, // SW=0
-   0,-1, // S=1
-   1,-1, // SE=2
-  -1, 0, // W=3
-   1, 0, // E=5 (skip CENTER=4)
-  -1, 1, // NW=6
-   0, 1, // N=7
-   1, 1, // NE=8
-]);
+// Glättungsfaktor für den SPEED-Sensor (EMA über ~16 Ticks)
+const SPEED_EMA_ALPHA = 1 / 16;
 
 // ---------------------------------------------------------------------------
 // prob2bool -- convert probability to boolean
@@ -47,141 +39,33 @@ export function executeActions(
   actionLevels: ArrayLike<number>,
   grid: Grid,
   peeps: Peeps,
-  signals: Signals,
+  _signals: Signals,
   params: SimParams,
-  onKill?: (killer: Indiv, x: number, y: number) => void,
 ): void {
-  // isEnabled was always true (all Action values < NUM_ACTIONS) — removed closure
-
-  // --- SET_RESPONSIVENESS ---
-  {
-    const level = actionLevels[Action.SET_RESPONSIVENESS];
-    indiv.responsiveness = (Math.tanh(level) + 1.0) / 2.0;
-  }
-
   const responsivenessAdjusted = responseCurve(
     indiv.responsiveness,
     params.responsivenessCurveKFactor,
   );
 
-  // --- SET_OSCILLATOR_PERIOD ---
-  {
-    const periodf = actionLevels[Action.SET_OSCILLATOR_PERIOD];
-    const newPeriodf01 = (Math.tanh(periodf) + 1.0) / 2.0;
-    const newPeriod = 1 + Math.floor(1.5 + Math.exp(7.0 * newPeriodf01));
-    indiv.oscPeriod = Math.max(2, Math.min(2048, newPeriod));
+  // --- Ruder: Differenz der beiden Turn-Outputs entscheidet die Drehung ---
+  // rotate(1) = 45° im Uhrzeigersinn, rotate(7) = 45° gegen den Uhrzeigersinn
+  let turn = actionLevels[Action.TURN_RIGHT] - actionLevels[Action.TURN_LEFT];
+  turn = Math.tanh(turn) * responsivenessAdjusted;
+  if (prob2bool(Math.abs(turn))) {
+    indiv.heading = indiv.heading.rotate(turn > 0 ? 1 : 7);
   }
 
-  // --- SET_LONGPROBE_DIST ---
-  {
-    const maxLongProbeDistance = 32;
-    let level = actionLevels[Action.SET_LONGPROBE_DIST];
-    level = (Math.tanh(level) + 1.0) / 2.0;
-    level = 1 + level * maxLongProbeDistance;
-    indiv.longProbeDist = Math.floor(level);
-  }
-
-  // --- EMIT_SIGNAL0 ---
-  {
-    const emitThreshold = 0.5;
-    let level = actionLevels[Action.EMIT_SIGNAL0];
-    level = (Math.tanh(level) + 1.0) / 2.0;
-    level *= responsivenessAdjusted;
-    if (level > emitThreshold && prob2bool(level)) {
-      signals.increment(0, indiv.loc);
+  // --- Auto-Vortrieb entlang des Headings, Tempo aus der Polartabelle ---
+  const speed = polarSpeed(indiv.heading.dir9, sailingEnv.windFrom);
+  let moved = 0;
+  if (prob2bool(speed)) {
+    const nc = indiv.heading.asNormalizedCoord();
+    const newLoc = new Coord(indiv.loc.x + nc.x, indiv.loc.y + nc.y);
+    if (grid.isInBounds(newLoc) && grid.isEmptyAt(newLoc)) {
+      peeps.queueForMove(indiv.index, newLoc);
+      moved = 1;
     }
   }
 
-  // Precompute lastMoveDir normalized coord as integers once — eliminates per-call Coord allocations
-  const lastMoveNc = indiv.lastMoveDir.asNormalizedCoord();
-  const lmdx = lastMoveNc.x;
-  const lmdy = lastMoveNc.y;
-  // rotate90DegCW:  (lmdy, -lmdx) — no Dir/Coord allocation needed
-  // rotate90DegCCW: (-lmdy, lmdx) — no Dir/Coord allocation needed
-
-  // --- KILL_FORWARD ---
-  if (params.killEnable) {
-    const killThreshold = 0.5;
-    let level = actionLevels[Action.KILL_FORWARD];
-    level = (Math.tanh(level) + 1.0) / 2.0;
-    level *= responsivenessAdjusted;
-    if (level > killThreshold && prob2bool(level)) {
-      const ox = indiv.loc.x + lmdx;
-      const oy = indiv.loc.y + lmdy;
-      const otherLoc = new Coord(ox, oy);
-      if (grid.isInBounds(otherLoc) && grid.isOccupiedAt(otherLoc)) {
-        const indiv2 = peeps.getIndivAt(otherLoc, grid);
-        peeps.queueForDeath(indiv2.index);
-        onKill?.(indiv, ox, oy);
-      }
-    }
-  }
-
-  // ------------- Movement action neurons ---------------
-  let moveX = actionLevels[Action.MOVE_X];
-  let moveY = actionLevels[Action.MOVE_Y];
-
-  moveX += actionLevels[Action.MOVE_EAST];
-  moveX -= actionLevels[Action.MOVE_WEST];
-  moveY += actionLevels[Action.MOVE_NORTH];
-  moveY -= actionLevels[Action.MOVE_SOUTH];
-
-  {
-    const level = actionLevels[Action.MOVE_FORWARD];
-    moveX += lmdx * level;
-    moveY += lmdy * level;
-  }
-
-  {
-    const level = actionLevels[Action.MOVE_REVERSE];
-    moveX -= lmdx * level;
-    moveY -= lmdy * level;
-  }
-
-  {
-    const level = actionLevels[Action.MOVE_LEFT];
-    // rotate90DegCCW: (-y, x) applied to (lmdx, lmdy) → (-lmdy, lmdx)
-    moveX += (-lmdy) * level;
-    moveY += lmdx * level;
-  }
-
-  {
-    const level = actionLevels[Action.MOVE_RIGHT];
-    // rotate90DegCW: (y, -x) applied to (lmdx, lmdy) → (lmdy, -lmdx)
-    moveX += lmdy * level;
-    moveY += (-lmdx) * level;
-  }
-
-  {
-    const level = actionLevels[Action.MOVE_RL];
-    // rotate90DegCW: (y, -x) applied to (lmdx, lmdy) → (lmdy, -lmdx)
-    moveX += lmdy * level;
-    moveY += (-lmdx) * level;
-  }
-
-  {
-    const level = actionLevels[Action.MOVE_RANDOM];
-    const rndIdx = randomUint(0, 7) * 2;
-    moveX += RANDOM8_XY[rndIdx] * level;
-    moveY += RANDOM8_XY[rndIdx + 1] * level;
-  }
-
-  // Convert accumulated sums to -1.0..1.0 and scale by responsiveness
-  moveX = Math.tanh(moveX) * responsivenessAdjusted;
-  moveY = Math.tanh(moveY) * responsivenessAdjusted;
-
-  const probX = prob2bool(Math.abs(moveX)) ? 1 : 0;
-  const probY = prob2bool(Math.abs(moveY)) ? 1 : 0;
-
-  const signumX = moveX < 0.0 ? -1 : 1;
-  const signumY = moveY < 0.0 ? -1 : 1;
-
-  // Inline newLoc as integer arithmetic — no intermediate Coord object
-  const newLocX = indiv.loc.x + probX * signumX;
-  const newLocY = indiv.loc.y + probY * signumY;
-  const newLoc = new Coord(newLocX, newLocY);
-
-  if (grid.isInBounds(newLoc) && grid.isEmptyAt(newLoc)) {
-    peeps.queueForMove(indiv.index, newLoc);
-  }
+  indiv.speedEMA += (moved - indiv.speedEMA) * SPEED_EMA_ALPHA;
 }

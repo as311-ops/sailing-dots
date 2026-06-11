@@ -1,20 +1,22 @@
 // simulator.ts -- Main simulation engine
 // Ported from biosim4: simulator.cpp, endOfSimStep.cpp, endOfGeneration.cpp
 
-import { Coord, Sensor, Action, Challenge, Indiv, type Genome } from './types';
+import { Coord, Sensor, Action, Indiv, type Genome } from './types';
 import { Grid } from './grid';
 import { Peeps } from './peeps';
 import { Signals } from './signals';
 import { SimParams, DEFAULT_PARAMS } from './params';
 import { feedForward } from './neural-net';
-import { getSensor } from './sensors';
+import { getSensor, SENSOR_NAMES } from './sensors';
 import { executeActions } from './actions';
 import { initializeGeneration0, spawnNewGeneration, type GenerationResult } from './spawn';
 import { nameFromGenome, clanFromGenome } from './naming';
-import { randomFloat } from './random';
-
-// Reusable Coord to avoid GC pressure in hot paths
-const _tmpCoord = new Coord(0, 0);
+import {
+  sailingEnv,
+  advanceSailingGeneration,
+  isInQuadrant,
+  REGATTA_FINISHED_BIT,
+} from './sailing';
 
 // ---------------------------------------------------------------------------
 // AgentInfo: detailed info for agent inspector
@@ -32,18 +34,13 @@ export interface AgentInfo {
   connectionCount: number;
   responsiveness: number;
   oscPeriod: number;
-  lastMoveDir: number;
+  heading: number;
   challengeBits: number;
   sensorValues: { name: string; value: number }[];
   connections: { from: string; to: string; weight: number }[];
 }
 
-const ACTION_NAMES = [
-  'MOVE_X', 'MOVE_Y', 'MOVE_FWD', 'MOVE_RL', 'MOVE_RND',
-  'SET_OSC', 'SET_PROBE', 'SET_RESP', 'EMIT_SIG',
-  'MOVE_E', 'MOVE_W', 'MOVE_N', 'MOVE_S',
-  'MOVE_L', 'MOVE_R', 'MOVE_REV', 'KILL',
-];
+const ACTION_NAMES = ['TURN_LEFT', 'TURN_RIGHT'];
 
 // ---------------------------------------------------------------------------
 // SimState: serializable snapshot for rendering
@@ -56,9 +53,10 @@ export interface SimState {
   survivors: number;
   agentLocations: Float32Array;
   agentColors: Uint8Array;
+  agentHeadings: Uint8Array; // Compass-Werte (0..8) pro lebendem Agent
   barrierLocations: Uint16Array;
-  signalLayers: Float32Array[];
-  killEvents: Float32Array;
+  windFrom: number;          // Compass-Wert der Windquelle
+  targetQuadrant: number;    // 0..3
   gridSize: { x: number; y: number };
 }
 
@@ -79,13 +77,10 @@ export class Simulator {
   // Cached rendering data to reduce allocations
   private _cachedColors: Uint8Array | null = null;
   private _colorsGeneration = -1;
-  private _stateCounter = 0;
-  private _pendingKillEvents: number[] = [];
 
   // Pre-allocated callbacks — avoid creating new closures per agent per step
   private _currentIndiv: Indiv | null = null;
   private _currentCacheToken = 0;
-  private readonly _killEventCallback: (killer: Indiv, x: number, y: number) => void;
   private readonly _getSensorFunc: (sensor: number, simStep: number) => number;
 
   constructor(params?: Partial<SimParams>) {
@@ -93,16 +88,6 @@ export class Simulator {
     this.grid = new Grid();
     this.peeps = new Peeps();
     this.signals = new Signals();
-    // Bind once — reused across all agents and steps
-    this._killEventCallback = (killer: Indiv, x: number, y: number) => {
-      this._pendingKillEvents.push(x, y);
-      if ((this.params.challenge as Challenge) === Challenge.CHALLENGE_HUNT_OR_HIDE) {
-        const currentKills = killer.challengeBits & 0xFF;
-        if (currentKills < 255) {
-          killer.challengeBits = (killer.challengeBits & ~0xFF) | (currentKills + 1);
-        }
-      }
-    };
     this._getSensorFunc = (sensor: number, simStep: number) =>
       this.getCachedSensorValue(this._currentIndiv!, sensor as Sensor, simStep, this._currentCacheToken);
   }
@@ -121,6 +106,9 @@ export class Simulator {
 
     this.grid.init(this.params.sizeX, this.params.sizeY);
     this.signals.init(this.params.signalLayers, this.params.sizeX, this.params.sizeY);
+
+    // Wind & Ziel-Quadrant für Generation 0 — vor der Platzierung der Boote
+    advanceSailingGeneration(this.params, 0);
 
     initializeGeneration0(this.peeps, this.grid, this.signals, this.params, seedGenome);
   }
@@ -191,8 +179,9 @@ export class Simulator {
       if (this.peeps.getIndiv(i).alive) aliveCount++;
     }
 
-    // Agent locations
+    // Agent locations + headings
     const agentLocations = new Float32Array(aliveCount * 2);
+    const agentHeadings = new Uint8Array(aliveCount);
     let idx = 0;
 
     for (let i = 1; i <= this.peeps.population; i++) {
@@ -200,6 +189,7 @@ export class Simulator {
       if (!indiv.alive) continue;
       agentLocations[idx * 2] = indiv.loc.x;
       agentLocations[idx * 2 + 1] = indiv.loc.y;
+      agentHeadings[idx] = indiv.heading.asInt();
       idx++;
     }
 
@@ -236,25 +226,6 @@ export class Simulator {
       barrierLocations[i * 2 + 1] = barriers[i].y;
     }
 
-    // Signal layers — only include every 3rd frame to save memory/bandwidth
-    this._stateCounter++;
-    const signalLayers: Float32Array[] = [];
-    if (this._stateCounter % 5 === 0) {
-      for (let layer = 0; layer < this.params.signalLayers; layer++) {
-        const data = new Float32Array(this.params.sizeX * this.params.sizeY);
-        for (let x = 0; x < this.params.sizeX; x++) {
-          for (let y = 0; y < this.params.sizeY; y++) {
-            data[x * this.params.sizeY + y] =
-              this.signals.getMagnitudeXY(layer, x, y) / 255.0;
-          }
-        }
-        signalLayers.push(data);
-      }
-    }
-
-    const killEvents = new Float32Array(this._pendingKillEvents);
-    this._pendingKillEvents.length = 0;
-
     return {
       generation: this.generation,
       simStep: this.simStep,
@@ -262,9 +233,10 @@ export class Simulator {
       survivors: this.lastSurvivors,
       agentLocations,
       agentColors,
+      agentHeadings,
       barrierLocations,
-      signalLayers,
-      killEvents,
+      windFrom: sailingEnv.windFrom as number,
+      targetQuadrant: sailingEnv.targetQuadrant,
       gridSize: { x: this.params.sizeX, y: this.params.sizeY },
     };
   }
@@ -282,23 +254,16 @@ export class Simulator {
 
     // Compute current sensor values
     const sensorValues: { name: string; value: number }[] = [];
-    const sensorNames = [
-      'LOC_X', 'LOC_Y', 'BOUNDARY_DIST_X', 'BOUNDARY_DIST',
-      'BOUNDARY_DIST_Y', 'GENETIC_SIM_FWD', 'LAST_MOVE_DIR_X',
-      'LAST_MOVE_DIR_Y', 'LONGPROBE_POP_FWD', 'LONGPROBE_BAR_FWD',
-      'POPULATION', 'POPULATION_FWD', 'POPULATION_LR', 'OSC1', 'AGE',
-      'BARRIER_FWD', 'BARRIER_LR', 'RANDOM', 'SIGNAL0', 'SIGNAL0_FWD', 'SIGNAL0_LR',
-    ];
     for (let s = 0; s < Sensor.NUM_SENSES; s++) {
       const val = getSensor(indiv, s as Sensor, this.simStep, this.grid, this.peeps, this.signals, this.params);
-      sensorValues.push({ name: sensorNames[s] ?? `SENSOR_${s}`, value: Math.round(val * 1000) / 1000 });
+      sensorValues.push({ name: SENSOR_NAMES[s] ?? `SENSOR_${s}`, value: Math.round(val * 1000) / 1000 });
     }
 
     // Neural net connections summary
     const connections: { from: string; to: string; weight: number }[] = [];
     for (const conn of indiv.nnet.connections) {
       const fromName = conn.sourceType === 1
-        ? sensorNames[conn.sourceNum] ?? `S${conn.sourceNum}`
+        ? SENSOR_NAMES[conn.sourceNum] ?? `S${conn.sourceNum}`
         : `N${conn.sourceNum}`;
       const toName = conn.sinkType === 1
         ? ACTION_NAMES[conn.sinkNum] ?? `A${conn.sinkNum}`
@@ -318,7 +283,7 @@ export class Simulator {
       connectionCount: indiv.nnet.connections.length,
       responsiveness: Math.round(indiv.responsiveness * 1000) / 1000,
       oscPeriod: indiv.oscPeriod,
-      lastMoveDir: indiv.lastMoveDir.asInt(),
+      heading: indiv.heading.asInt(),
       challengeBits: indiv.challengeBits,
       sensorValues,
       connections,
@@ -346,8 +311,7 @@ export class Simulator {
       { numActions: Action.NUM_ACTIONS },
     );
 
-    executeActions(indiv, actionLevels, this.grid, this.peeps, this.signals, this.params,
-      this._killEventCallback);
+    executeActions(indiv, actionLevels, this.grid, this.peeps, this.signals, this.params);
   }
 
   private getCachedSensorValue(
@@ -373,125 +337,19 @@ export class Simulator {
   }
 
   private endOfSimStep(): void {
-    const challenge = this.params.challenge as Challenge;
-
-    // Challenge-specific step logic
-    if (challenge === Challenge.CHALLENGE_RADIOACTIVE_WALLS) {
-      // Original biosim4 logic: one wall alternates each half-generation.
-      // First half → west wall (x=0) is radioactive.
-      // Second half → east wall (x=sizeX-1) is radioactive.
-      // chanceOfDeath = 1 / distanceFromActiveWall (only within sizeX/2 cells of wall).
-      const halfSteps = this.params.stepsPerGeneration / 2;
-      const dangerHalfWidth = Math.floor(this.params.sizeX / 2);
-      const useWest = this.simStep < halfSteps;
-
-      for (let i = 1; i <= this.peeps.population; i++) {
-        const indiv = this.peeps.getIndiv(i);
-        if (!indiv.alive) continue;
-        const distFromWall = useWest
-          ? indiv.loc.x + 1
-          : this.params.sizeX - indiv.loc.x;
-        if (distFromWall <= dangerHalfWidth) {
-          const chanceOfDeath = 1.0 / distFromWall;
-          if (randomFloat() < chanceOfDeath) {
-            this.peeps.queueForDeath(i);
-          }
-        }
-      }
-    }
-
-    // Set challengeBits for TOUCH_ANY_WALL
-    if (
-      challenge === Challenge.CHALLENGE_TOUCH_ANY_WALL ||
-      challenge === Challenge.CHALLENGE_AGAINST_ANY_WALL
-    ) {
-      for (let i = 1; i <= this.peeps.population; i++) {
-        const indiv = this.peeps.getIndiv(i);
-        if (!indiv.alive) continue;
-        if (this.grid.isBorder(indiv.loc)) {
-          indiv.challengeBits |= 1;
-        }
-      }
-    }
-
-    // The Tide: count ticks spent inside the oscillating safe zone
-    if (challenge === Challenge.CHALLENGE_THE_TIDE) {
-      const zoneRadius = this.params.sizeX / 4;
-      const zoneX = this.params.sizeX / 2
-        + (this.params.sizeX / 4) * Math.sin(2 * Math.PI * this.simStep / this.params.stepsPerGeneration);
-      const zoneY = this.params.sizeY / 2;
-      for (let i = 1; i <= this.peeps.population; i++) {
-        const indiv = this.peeps.getIndiv(i);
-        if (!indiv.alive) continue;
-        const dx = indiv.loc.x - zoneX;
-        const dy = indiv.loc.y - zoneY;
-        if (Math.sqrt(dx * dx + dy * dy) <= zoneRadius) {
-          const ticks = indiv.challengeBits & 0xFFFF;
-          if (ticks < 0xFFFF) {
-            indiv.challengeBits = (indiv.challengeBits & ~0xFFFF) | (ticks + 1);
-          }
-        }
-      }
-    }
-
-    // Hot Potato: set phase bit when creature is in the correct zone during active phase
-    if (challenge === Challenge.CHALLENGE_HOT_POTATO) {
-      const s = this.params.stepsPerGeneration;
-      const phase1End = Math.floor(s / 3);
-      const phase2End = Math.floor(2 * s / 3);
-      const r = this.params.sizeX / 5;
-
-      // Phase zones (NW, SE, Center)
-      const zones = [
-        { x: this.params.sizeX / 6,                          y: this.params.sizeY - this.params.sizeY / 6 }, // NW
-        { x: this.params.sizeX - this.params.sizeX / 6,      y: this.params.sizeY / 6 },                      // SE
-        { x: this.params.sizeX / 2,                          y: this.params.sizeY / 2 },                       // Center
-      ];
-
-      let activePhase = -1;
-      if (this.simStep < phase1End) activePhase = 0;
-      else if (this.simStep < phase2End) activePhase = 1;
-      else activePhase = 2;
-
-      const zone = zones[activePhase];
-      const bit = 1 << activePhase;
-
-      for (let i = 1; i <= this.peeps.population; i++) {
-        const indiv = this.peeps.getIndiv(i);
-        if (!indiv.alive) continue;
-        if (indiv.challengeBits & bit) continue; // already earned this phase
-        const dx = indiv.loc.x - zone.x;
-        const dy = indiv.loc.y - zone.y;
-        if (Math.sqrt(dx * dx + dy * dy) <= r) {
-          indiv.challengeBits |= bit;
-        }
-      }
-    }
-
-    // Boomerang: set bit 0 when creature enters NE checkpoint
-    if (challenge === Challenge.CHALLENGE_BOOMERANG) {
-      const checkX = this.params.sizeX - 1 - this.params.sizeX / 8;
-      const checkY = this.params.sizeY - 1 - this.params.sizeY / 8;
-      const checkRadius = this.params.sizeX / 8;
-      for (let i = 1; i <= this.peeps.population; i++) {
-        const indiv = this.peeps.getIndiv(i);
-        if (!indiv.alive) continue;
-        if (indiv.challengeBits & 1) continue; // already visited
-        const dx = indiv.loc.x - checkX;
-        const dy = indiv.loc.y - checkY;
-        if (Math.sqrt(dx * dx + dy * dy) <= checkRadius) {
-          indiv.challengeBits |= 1;
-        }
-      }
-    }
-
-    // Drain queues
+    // Drain queues first, damit die Quadranten-Prüfung die Position NACH dem
+    // Move dieses Ticks sieht und der Ankunfts-Tick exakt stimmt
     this.peeps.drainDeathQueue(this.grid);
     this.peeps.drainMoveQueue(this.grid);
 
-    // Fade signals
-    for (let layer = 0; layer < this.params.signalLayers; layer++) {
-      this.signals.fade(layer);
+    // Regatta: erstmaliges Erreichen des Ziel-Quadranten markieren
+    for (let i = 1; i <= this.peeps.population; i++) {
+      const indiv = this.peeps.getIndiv(i);
+      if (!indiv.alive) continue;
+      if (indiv.challengeBits & REGATTA_FINISHED_BIT) continue;
+      if (isInQuadrant(indiv.loc.x, indiv.loc.y, sailingEnv.targetQuadrant, this.params.sizeX, this.params.sizeY)) {
+        indiv.challengeBits = REGATTA_FINISHED_BIT | Math.min(0xFFFF, this.simStep);
+      }
     }
   }
 

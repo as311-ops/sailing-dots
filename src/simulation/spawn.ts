@@ -9,17 +9,41 @@ import { SimParams } from './params';
 import { makeRandomGenome, generateChildGenome, genomeSimilarity } from './genome';
 import { createWiringFromGenome } from './neural-net';
 import { passedSurvivalCriterion } from './survival';
-import { randomUint } from './random';
 import { computeGenomeProfile, type GenomeProfile } from './genome-profile';
 import { createChampionSnapshot, type ChampionSnapshot } from './lineage';
+import {
+  sailingEnv,
+  advanceSailingGeneration,
+  quadrantCenter,
+  REGATTA_FINISHED_BIT,
+  REGATTA_TICK_MASK,
+} from './sailing';
 
 export interface GenerationResult {
-  survivors: number;
+  survivors: number;        // Finisher: Boote, die den Ziel-Quadranten erreicht haben
   generation: number;
   diversity: number;
-  avgFitness: number; // 0..1 average score of survivors
+  avgFitness: number;       // 0..1 average score of parent candidates
+  finisherRate: number;     // Finisher / Population
+  avgArrivalTick: number;   // Ø Ankunfts-Tick der Finisher, -1 wenn keine
   genomeProfile: GenomeProfile | null;
   championSnapshot: ChampionSnapshot | null;
+}
+
+/**
+ * Spawn-Platzierung für die Regatta: gleichverteilt, aber mindestens eine
+ * halbe Grid-Breite vom Zentrum des Ziel-Quadranten entfernt.
+ */
+function findRegattaSpawnLocation(grid: Grid, params: SimParams): Coord {
+  const center = quadrantCenter(sailingEnv.targetQuadrant, params.sizeX, params.sizeY);
+  const minDist = params.sizeX / 2;
+  for (let tries = 0; tries < 100; tries++) {
+    const loc = grid.findEmptyLocation();
+    const dx = loc.x - center.x;
+    const dy = loc.y - center.y;
+    if (Math.sqrt(dx * dx + dy * dy) >= minDist) return loc;
+  }
+  return grid.findEmptyLocation();
 }
 
 /**
@@ -36,7 +60,7 @@ export function initializeGeneration0(
   grid.zeroFill();
   signals.zeroFill();
   grid.createBarrier(params.barrierType, params);
-  peeps.init(params.population, grid);
+  peeps.init(params.population, grid, (g) => findRegattaSpawnLocation(g, params));
 
   const wiringParams = {
     maxNumberNeurons: params.maxNumberNeurons,
@@ -85,10 +109,11 @@ export function spawnNewGeneration(
 ): GenerationResult {
   // Evaluate survival for all individuals
   const parentGenomes: Genome[] = [];
-  let survivorCount = 0;
 
-  // Collect survivor genomes, sorted by fitness if applicable
+  // Collect parent candidates (alle mit Score-Gradient), Finisher separat zählen
   const candidates: { genome: Genome; score: number }[] = [];
+  let finisherCount = 0;
+  let arrivalTickSum = 0;
 
   for (let i = 1; i <= peeps.population; i++) {
     const indiv = peeps.getIndiv(i);
@@ -97,9 +122,20 @@ export function spawnNewGeneration(
     const result = passedSurvivalCriterion(indiv, params.challenge as Challenge, params, grid);
     if (result.passed) {
       candidates.push({ genome: indiv.genome, score: result.score });
-      survivorCount++;
+    }
+    if (indiv.challengeBits & REGATTA_FINISHED_BIT) {
+      finisherCount++;
+      arrivalTickSum += indiv.challengeBits & REGATTA_TICK_MASK;
     }
   }
+
+  const survivorCount = finisherCount;
+  const finisherRate = params.population > 0 ? finisherCount / params.population : 0;
+  const avgArrivalTick = finisherCount > 0 ? arrivalTickSum / finisherCount : -1;
+
+  // Wind & Ziel-Quadrant für die NÄCHSTE Generation festlegen — muss vor der
+  // Platzierung der neuen Boote geschehen (Spawn hängt vom Ziel ab)
+  advanceSailingGeneration(params, generation + 1);
 
   // Sort by fitness (highest score first) for fitness-proportional selection
   if (params.chooseParentsByFitness) {
@@ -139,7 +175,7 @@ export function spawnNewGeneration(
   // If no survivors, create random genomes
   if (parentGenomes.length === 0) {
     initializeGeneration0(peeps, grid, signals, params);
-    return { survivors: 0, generation, diversity: 1.0, avgFitness: 0, genomeProfile: null, championSnapshot: null };
+    return { survivors: 0, generation, diversity: 1.0, avgFitness: 0, finisherRate: 0, avgArrivalTick: -1, genomeProfile: null, championSnapshot: null };
   }
 
   // Compute consensus genome profile from survivors
@@ -153,7 +189,7 @@ export function spawnNewGeneration(
   // Generate new population from survivors
   initializeNewGeneration(parentGenomes, peeps, grid, signals, params);
 
-  return { survivors: survivorCount, generation, diversity, avgFitness, genomeProfile, championSnapshot };
+  return { survivors: survivorCount, generation, diversity, avgFitness, finisherRate, avgArrivalTick, genomeProfile, championSnapshot };
 }
 
 /**
@@ -169,7 +205,7 @@ function initializeNewGeneration(
   grid.zeroFill();
   signals.zeroFill();
   grid.createBarrier(params.barrierType, params);
-  peeps.init(params.population, grid);
+  peeps.init(params.population, grid, (g) => findRegattaSpawnLocation(g, params));
 
   const wiringParams = {
     maxNumberNeurons: params.maxNumberNeurons,

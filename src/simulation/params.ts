@@ -1,7 +1,7 @@
 // params.ts -- Simulation parameters
 // Ported from biosim4: params.h, params.cpp
 
-import { Challenge } from './types';
+import { Challenge, Compass } from './types';
 
 export interface SimParams {
   // Grid dimensions
@@ -28,8 +28,13 @@ export interface SimParams {
   sexualReproduction: boolean;
   chooseParentsByFitness: boolean;
 
+  // Wind / Regatta
+  windMode: 'fixed' | 'rotate' | 'random';
+  windDirection: Compass;     // Startrichtung, aus der der Wind weht
+  windRotatePeriod: number;   // Generationen bis zur nächsten 45°-Drehung (windMode 'rotate')
+  targetQuadrant: number;     // 0..3 fest, -1 = zufällig pro Generation
+
   // Behavior
-  killEnable: boolean;
   populationSensorRadius: number;
   signalSensorRadius: number;
   responsiveness: number;
@@ -99,7 +104,11 @@ export const DEFAULT_PARAMS: SimParams = {
   sexualReproduction: true,
   chooseParentsByFitness: true,
 
-  killEnable: false,
+  windMode: 'rotate',
+  windDirection: Compass.N,
+  windRotatePeriod: 30,
+  targetQuadrant: -1,
+
   populationSensorRadius: 2.5,
   signalSensorRadius: 2.0,
   responsiveness: 0.5,
@@ -110,7 +119,7 @@ export const DEFAULT_PARAMS: SimParams = {
 
   signalLayers: 1,
 
-  challenge: Challenge.CHALLENGE_CORNER,
+  challenge: Challenge.CHALLENGE_REGATTA,
   barrierType: 0,
 
   deterministic: false,

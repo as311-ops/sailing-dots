@@ -138,7 +138,7 @@ export default function StatsGraph({ history, width, height }: StatsGraphProps) 
 
     ctx.fillStyle = "#10b981";
     ctx.fillRect(pad.left + 4, legendY, 8, 2);
-    ctx.fillText("Survival Rate", pad.left + 16, legendY + 4);
+    ctx.fillText("Finisher Rate", pad.left + 16, legendY + 4);
 
     ctx.fillStyle = "#6366f1";
     ctx.fillRect(pad.left + 110, legendY, 8, 2);

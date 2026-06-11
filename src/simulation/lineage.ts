@@ -62,19 +62,13 @@ export function createChampionSnapshot(
 
 // Match names from genome-profile.ts for consistency
 const SENSOR_NAMES: Record<number, string> = {
-  0: 'LOC_X', 1: 'LOC_Y', 2: 'BDIST_X', 3: 'BDIST',
-  4: 'BDIST_Y', 5: 'GEN_SIM', 6: 'LDIR_X', 7: 'LDIR_Y',
-  8: 'LP_POP', 9: 'LP_BAR', 10: 'POP', 11: 'POP_F',
-  12: 'POP_LR', 13: 'OSC', 14: 'AGE', 15: 'BAR_F',
-  16: 'BAR_LR', 17: 'RND', 18: 'SIG0', 19: 'SIG0_F',
-  20: 'SIG0_LR',
+  0: 'WIND_X', 1: 'WIND_Y', 2: 'TGT_X', 3: 'TGT_Y',
+  4: 'TGT_D', 5: 'BDIST', 6: 'SPD', 7: 'OSC',
+  8: 'AGE', 9: 'RND',
 };
 
 const ACTION_NAMES: Record<number, string> = {
-  0: 'MV_X', 1: 'MV_Y', 2: 'MV_FWD', 3: 'MV_RL',
-  4: 'MV_RND', 5: 'SET_OSC', 6: 'SET_PRB', 7: 'SET_RSP',
-  8: 'EMIT', 9: 'MV_E', 10: 'MV_W', 11: 'MV_N',
-  12: 'MV_S', 13: 'MV_L', 14: 'MV_R', 15: 'MV_REV',
+  0: 'TURN_L', 1: 'TURN_R',
 };
 
 function sensorShortName(num: number): string {

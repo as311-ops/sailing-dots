@@ -1,7 +1,7 @@
 // peeps.ts -- Manages the population of individuals
 // Ported from biosim4: peeps.h, peeps.cpp
 
-import { Coord, type Indiv, createDefaultIndiv } from './types';
+import { Coord, Dir, type Indiv, createDefaultIndiv } from './types';
 import type { Grid } from './grid';
 
 /**
@@ -21,9 +21,10 @@ export class Peeps {
   /**
    * Initialize the population with the given size.
    * Index 0 is reserved, so individuals has population+1 entries.
-   * Each individual is placed at a random empty location on the grid.
+   * Each individual is placed via locFinder (default: random empty location)
+   * and starts with a random heading.
    */
-  init(population: number, grid: Grid): void {
+  init(population: number, grid: Grid, locFinder?: (grid: Grid) => Coord): void {
     this.individuals = new Array(population + 1);
 
     // Index 0 is reserved
@@ -33,9 +34,10 @@ export class Peeps {
       const indiv = createDefaultIndiv();
       indiv.alive = true;
       indiv.index = i;
-      const loc = grid.findEmptyLocation();
+      const loc = locFinder ? locFinder(grid) : grid.findEmptyLocation();
       indiv.loc = loc;
       indiv.birthLoc = new Coord(loc.x, loc.y);
+      indiv.heading = Dir.random8();
       grid.set(loc, i);
       this.individuals[i] = indiv;
     }

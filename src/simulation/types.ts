@@ -353,6 +353,8 @@ export interface Indiv {
   oscPeriod: number;      // oscillator period
   longProbeDist: number;  // distance for long forward probe
   lastMoveDir: Dir;
+  heading: Dir;           // Bootsausrichtung (eine der 8 Richtungen, nie CENTER)
+  speedEMA: number;       // gleitender Mittelwert erfolgreicher Moves (0..1)
   challengeBits: number;  // bits set when indiv accomplishes challenge tasks
   sensorCacheValues: Float32Array;
   sensorCacheEpochs: Uint32Array;
@@ -380,6 +382,8 @@ export function createDefaultIndiv(): Indiv {
     oscPeriod: 34,
     longProbeDist: 16,
     lastMoveDir: new Dir(Compass.CENTER),
+    heading: new Dir(Compass.N),
+    speedEMA: 0,
     challengeBits: 0,
     sensorCacheValues: new Float32Array(Sensor.NUM_SENSES),
     sensorCacheEpochs: new Uint32Array(Sensor.NUM_SENSES),
@@ -388,82 +392,34 @@ export function createDefaultIndiv(): Indiv {
 }
 
 // ---------------------------------------------------------------------------
-// Sensor enum
+// Sensor enum — Segel-Sensorik
 // ---------------------------------------------------------------------------
 export enum Sensor {
-  LOC_X = 0,
-  LOC_Y,
-  BOUNDARY_DIST_X,
+  WIND_REL_X = 0,  // cos des Windwinkels relativ zum Heading
+  WIND_REL_Y,      // sin des Windwinkels relativ zum Heading
+  TARGET_REL_X,    // cos der Zielpeilung relativ zum Heading
+  TARGET_REL_Y,    // sin der Zielpeilung relativ zum Heading
+  TARGET_DIST,     // Distanz zum Zielzentrum (normalisiert auf Grid-Diagonale)
   BOUNDARY_DIST,
-  BOUNDARY_DIST_Y,
-  GENETIC_SIM_FWD,
-  LAST_MOVE_DIR_X,
-  LAST_MOVE_DIR_Y,
-  LONGPROBE_POP_FWD,
-  LONGPROBE_BAR_FWD,
-  POPULATION,
-  POPULATION_FWD,
-  POPULATION_LR,
+  SPEED,           // gleitender Mittelwert der letzten Moves
   OSC1,
   AGE,
-  BARRIER_FWD,
-  BARRIER_LR,
   RANDOM,
-  SIGNAL0,
-  SIGNAL0_FWD,
-  SIGNAL0_LR,
   NUM_SENSES,
 }
 
 // ---------------------------------------------------------------------------
-// Action enum
+// Action enum — das Netz steuert nur das Ruder, Vortrieb kommt vom Wind
 // ---------------------------------------------------------------------------
 export enum Action {
-  MOVE_X = 0,
-  MOVE_Y,
-  MOVE_FORWARD,
-  MOVE_RL,
-  MOVE_RANDOM,
-  SET_OSCILLATOR_PERIOD,
-  SET_LONGPROBE_DIST,
-  SET_RESPONSIVENESS,
-  EMIT_SIGNAL0,
-  MOVE_EAST,
-  MOVE_WEST,
-  MOVE_NORTH,
-  MOVE_SOUTH,
-  MOVE_LEFT,
-  MOVE_RIGHT,
-  MOVE_REVERSE,
-  KILL_FORWARD,
+  TURN_LEFT = 0,
+  TURN_RIGHT,
   NUM_ACTIONS,
 }
 
 // ---------------------------------------------------------------------------
-// Challenge enum — survival challenge types
+// Challenge enum
 // ---------------------------------------------------------------------------
 export enum Challenge {
-  CHALLENGE_CIRCLE = 0,
-  CHALLENGE_RIGHT_HALF = 1,
-  CHALLENGE_RIGHT_QUARTER = 2,
-  CHALLENGE_STRING = 3,
-  CHALLENGE_CENTER_WEIGHTED = 4,
-  CHALLENGE_CENTER_UNWEIGHTED = 5,
-  CHALLENGE_CORNER = 6,
-  CHALLENGE_CORNER_WEIGHTED = 7,
-  CHALLENGE_MIGRATE_DISTANCE = 8,
-  CHALLENGE_CENTER_SPARSE = 9,
-  CHALLENGE_LEFT_EIGHTH = 10,
-  CHALLENGE_RADIOACTIVE_WALLS = 11,
-  CHALLENGE_AGAINST_ANY_WALL = 12,
-  CHALLENGE_TOUCH_ANY_WALL = 13,
-  CHALLENGE_EAST_WEST_EIGHTHS = 14,
-  CHALLENGE_NEAR_BARRIER = 15,
-  CHALLENGE_PAIRS = 16,
-  CHALLENGE_LOCATION_SEQUENCE = 17,
-  CHALLENGE_ALTRUISM = 18,
-  CHALLENGE_THE_TIDE = 19,
-  CHALLENGE_HUNT_OR_HIDE = 20,
-  CHALLENGE_HOT_POTATO = 21,
-  CHALLENGE_BOOMERANG = 22,
+  CHALLENGE_REGATTA = 0,
 }

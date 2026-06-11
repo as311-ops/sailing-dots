@@ -20,12 +20,10 @@ export interface SimConfig {
   pointMutationRate: number;
   sexualReproduction: boolean;
   chooseParentsByFitness: boolean;
-  killEnable: boolean;
-  populationSensorRadius: number;
-  signalLayers: number;
-  longProbeDistance: number;
-  challenge: number;
-  barrierType: number;
+  windMode: 'fixed' | 'rotate' | 'random';
+  windDirection: number;    // Compass-Wert (7 = N)
+  windRotatePeriod: number; // Generationen bis zur nächsten 45°-Drehung
+  targetQuadrant: number;   // 0..3 fest, -1 = zufällig pro Generation
   responsivenessCurveKFactor: number;
 }
 
@@ -40,50 +38,37 @@ export const DEFAULT_CONFIG: SimConfig = {
   pointMutationRate: 0.001,
   sexualReproduction: true,
   chooseParentsByFitness: true,
-  killEnable: false,
-  populationSensorRadius: 3.5,
-  signalLayers: 1,
-  longProbeDistance: 8,
-  challenge: 1,
-  barrierType: 0,
+  windMode: 'rotate',
+  windDirection: 7, // Compass.N
+  windRotatePeriod: 30,
+  targetQuadrant: -1,
   responsivenessCurveKFactor: 4,
 };
 
-// Must match Challenge enum in types.ts exactly
-const CHALLENGE_NAMES: Record<number, string> = {
-  0: "Circle (SW Quarter)",
-  1: "Right Half",
-  2: "Right Quarter",
-  3: "String Behavior",
-  4: "Center (Weighted)",
-  5: "Center (Unweighted)",
-  6: "Corners",
-  7: "Corners (Weighted)",
-  8: "Migration Distance",
-  9: "Center (Sparse)",
-  10: "Left Eighth",
-  11: "Radioactive Walls",
-  12: "Against Wall (End)",
-  13: "Wall Touched (Any)",
-  14: "East-West Eighth",
-  15: "Near Barrier",
-  16: "Pair Formation",
-  17: "Location Sequence",
-  18: "Altruism",
-  19: "The Tide",
-  20: "Hunt or Hide",
-  21: "Hot Potato",
-  22: "Boomerang",
+const WIND_MODE_NAMES: Record<string, string> = {
+  fixed: "Fixed",
+  rotate: "Rotating (45° steps)",
+  random: "Random per Generation",
 };
 
-const BARRIER_NAMES: Record<number, string> = {
-  0: "None",
-  1: "Vertical Wall (Center)",
-  2: "Cross",
-  3: "Vertical Wall (Offset)",
-  4: "Spiral",
-  5: "Diagonal",
-  6: "Multiple Rectangles",
+// Compass-Werte: SW=0, S=1, SE=2, W=3, E=5, NW=6, N=7, NE=8
+const WIND_DIRECTION_NAMES: Record<number, string> = {
+  7: "North",
+  8: "Northeast",
+  5: "East",
+  2: "Southeast",
+  1: "South",
+  0: "Southwest",
+  3: "West",
+  6: "Northwest",
+};
+
+const TARGET_QUADRANT_NAMES: Record<number, string> = {
+  [-1]: "Random per Generation",
+  0: "Southwest",
+  1: "Southeast",
+  2: "Northwest",
+  3: "Northeast",
 };
 
 interface ControlPanelProps {
@@ -212,7 +197,7 @@ export default function ControlPanel({
   onShareGenome,
   genomeProfile,
 }: ControlPanelProps) {
-  const [section, setSection] = useState<"sim" | "genome" | "sensors">("sim");
+  const [section, setSection] = useState<"sim" | "genome" | "wind">("sim");
   const [configOpen, setConfigOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [soundOn, setSoundOn] = useState(isSoundEnabled);
@@ -279,7 +264,7 @@ export default function ControlPanel({
             </div>
           </div>
           <div>
-            <div className="text-zinc-500">Survivors</div>
+            <div className="text-zinc-500">Finishers</div>
             <div className="font-mono text-emerald-400">
               {state?.survivors ?? "–"}
             </div>
@@ -395,7 +380,7 @@ export default function ControlPanel({
 
       {/* Section Tabs */}
       <div className="flex border border-zinc-800 rounded-lg overflow-hidden">
-        {(["sim", "genome", "sensors"] as const).map((s) => (
+        {(["sim", "wind", "genome"] as const).map((s) => (
           <button
             key={s}
             onClick={() => setSection(s)}
@@ -405,7 +390,7 @@ export default function ControlPanel({
                 : "bg-zinc-900 text-zinc-500 hover:text-zinc-300"
             }`}
           >
-            {s === "sim" ? "World" : s === "genome" ? "Genome" : "Sensor"}
+            {s === "sim" ? "World" : s === "wind" ? "Wind" : "Genome"}
           </button>
         ))}
       </div>
@@ -433,39 +418,70 @@ export default function ControlPanel({
               disabled={running}
             />
             <div className="space-y-1">
-              <label className="text-xs text-zinc-400">Challenge</label>
+              <label className="text-xs text-zinc-400">Target Quadrant</label>
               <select
-                value={config.challenge}
-                onChange={(e) => update("challenge", Number(e.target.value))}
+                value={config.targetQuadrant}
+                onChange={(e) => update("targetQuadrant", Number(e.target.value))}
                 disabled={running}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-md text-xs text-zinc-200
                            py-1.5 px-2 focus:outline-none focus:ring-1 focus:ring-zinc-600
                            disabled:opacity-40"
               >
-                {Object.entries(CHALLENGE_NAMES).map(([k, v]) => (
+                {Object.entries(TARGET_QUADRANT_NAMES).map(([k, v]) => (
                   <option key={k} value={k}>
                     {v}
                   </option>
                 ))}
               </select>
             </div>
+          </>
+        )}
+
+        {section === "wind" && (
+          <>
             <div className="space-y-1">
-              <label className="text-xs text-zinc-400">Barrier</label>
+              <label className="text-xs text-zinc-400">Wind Mode</label>
               <select
-                value={config.barrierType}
-                onChange={(e) => update("barrierType", Number(e.target.value))}
-                disabled={running}
+                value={config.windMode}
+                onChange={(e) => update("windMode", e.target.value as SimConfig["windMode"])}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-md text-xs text-zinc-200
-                           py-1.5 px-2 focus:outline-none focus:ring-1 focus:ring-zinc-600
-                           disabled:opacity-40"
+                           py-1.5 px-2 focus:outline-none focus:ring-1 focus:ring-zinc-600"
               >
-                {Object.entries(BARRIER_NAMES).map(([k, v]) => (
+                {Object.entries(WIND_MODE_NAMES).map(([k, v]) => (
                   <option key={k} value={k}>
                     {v}
                   </option>
                 ))}
               </select>
             </div>
+            {config.windMode !== "random" && (
+              <div className="space-y-1">
+                <label className="text-xs text-zinc-400">Wind Direction (from)</label>
+                <select
+                  value={config.windDirection}
+                  onChange={(e) => update("windDirection", Number(e.target.value))}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md text-xs text-zinc-200
+                             py-1.5 px-2 focus:outline-none focus:ring-1 focus:ring-zinc-600"
+                >
+                  {Object.entries(WIND_DIRECTION_NAMES).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {config.windMode === "rotate" && (
+              <Slider
+                label="Rotate every"
+                value={config.windRotatePeriod}
+                min={5}
+                max={100}
+                step={5}
+                unit=" gens"
+                onChange={(v) => update("windRotatePeriod", v)}
+              />
+            )}
           </>
         )}
 
@@ -507,42 +523,6 @@ export default function ControlPanel({
               checked={config.chooseParentsByFitness}
               onChange={(v) => update("chooseParentsByFitness", v)}
             />
-            <Toggle
-              label="Kill Action Enabled"
-              checked={config.killEnable}
-              onChange={(v) => update("killEnable", v)}
-            />
-          </>
-        )}
-
-        {section === "sensors" && (
-          <>
-            <Slider
-              label="Sensor Radius (Population)"
-              value={config.populationSensorRadius}
-              min={1}
-              max={10}
-              step={0.5}
-              unit=""
-              onChange={(v) => update("populationSensorRadius", v)}
-            />
-            <Slider
-              label="Long Probe Distance"
-              value={config.longProbeDistance}
-              min={1}
-              max={32}
-              step={1}
-              onChange={(v) => update("longProbeDistance", v)}
-            />
-            <Slider
-              label="Signal Layers"
-              value={config.signalLayers}
-              min={1}
-              max={4}
-              step={1}
-              onChange={(v) => update("signalLayers", v)}
-              disabled={running}
-            />
             <Slider
               label="Response Curve K"
               value={config.responsivenessCurveKFactor}
@@ -577,14 +557,14 @@ function SurvivalKPI({
   const rate = population > 0 ? survivors / population : 0;
   const hasData = generation > 0;
 
-  // If all survive (e.g. migration challenge), show fitness instead
+  // If all finish, show fitness instead
   const allSurvive = hasData && rate >= 0.99;
   const displayRate = allSurvive ? avgFitness : rate;
   const pct = Math.round(displayRate * 100);
-  const label = allSurvive ? 'Avg Fitness' : 'Survival Rate';
+  const label = allSurvive ? 'Avg Fitness' : 'Finisher Rate';
   const detail = allSurvive
-    ? `All survive — score matters`
-    : `${survivors} of ${population}`;
+    ? `All finish — speed matters`
+    : `${survivors} of ${population} reached the target`;
 
   // Color transitions: 0% = red, 30% = amber, 60%+ = green
   const color = !hasData

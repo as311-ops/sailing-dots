@@ -13,42 +13,35 @@ interface TutorialWizardProps {
 const STEPS = [
   {
     subtitle: "WHAT IS THIS?",
-    title: "Darwin's Arena",
-    body: "A living evolution experiment. Hundreds of creatures — each with a neural network brain — compete, adapt, and die. Over generations only the fittest survive to pass on their genes. You are watching natural selection happen in real time.",
+    title: "Sailing Dots",
+    body: "A living evolution experiment at sea. Hundreds of little sailboats — each with a neural network brain — race to a target zone. Over generations only the fastest pass on their genes. You are watching boats learn to sail, in real time, with no sailing knowledge programmed in.",
     visual: (
       <pre className="font-mono text-[13px] leading-[16px] select-none text-center">
-        <span className="text-yellow-300">{"  ~"}</span>
-        <span className="text-zinc-600">{"\\"}</span>
-        <span className="text-zinc-600">{"  "}</span>
-        <span className="text-zinc-600">{"/"}</span>
-        <span className="text-red-400">{"!"}</span>
+        <span className="text-cyan-400">{"      ~  "}</span>
+        <span className="text-zinc-500">{"≋"}</span>
         {"\n"}
-        <span className="text-cyan-400">{" ◉"}</span>
-        <span className="text-zinc-600">{" "}</span>
-        <span className="text-cyan-400">{"◉"}</span>
-        <span className="text-zinc-600">{" "}</span>
-        <span className="text-cyan-400">{"◉"}</span>
+        <span className="text-zinc-100">{"      |"}</span>
+        <span className="text-emerald-400">{"\\"}</span>
         {"\n"}
-        <span className="text-violet-400">{"╔██████╗"}</span>
+        <span className="text-zinc-100">{"      |"}</span>
+        <span className="text-emerald-400">{" \\"}</span>
         {"\n"}
-        <span className="text-violet-400">{"║◆◆◆◆◆║"}</span>
+        <span className="text-zinc-100">{"      |"}</span>
+        <span className="text-emerald-400">{"  \\"}</span>
         {"\n"}
-        <span className="text-violet-400">{"╚══════╝"}</span>
+        <span className="text-zinc-100">{"      |"}</span>
+        <span className="text-emerald-400">{"___\\"}</span>
         {"\n"}
-        <span className="text-emerald-400">{" ▓▓▓▓▓▓"}</span>
+        <span className="text-violet-400">{"  \\___________/"}</span>
         {"\n"}
-        <span className="text-emerald-400">{" ▓▓▓▓▓▓"}</span>
-        {"\n"}
-        <span className="text-zinc-100">{" ╿    ╿"}</span>
-        {"\n"}
-        <span className="text-zinc-100">{" │    │"}</span>
+        <span className="text-cyan-400">{"~~~~~~~~~~~~~~~~~~~"}</span>
       </pre>
     ),
   },
   {
     subtitle: "THE PLAYERS",
-    title: "Darwin-Dots",
-    body: "Each creature is an autonomous agent on a 2D grid. It perceives its environment through sensors, processes inputs through a neural network, and executes actions every simulation step. No hard-coded rules — all behavior emerges from evolved genes.",
+    title: "Sailing Dots",
+    body: "Each boat is an autonomous agent on a 2D sea. It senses the wind and the target bearing, processes the inputs through a neural network, and steers its rudder every simulation step. No hard-coded rules — all behavior emerges from evolved genes.",
     visual: (
       <svg width="240" height="90" viewBox="0 0 240 90" className="mx-auto">
         <circle cx="60" cy="45" r="14" fill="#10b981" opacity="0.9" />
@@ -88,7 +81,7 @@ const STEPS = [
   {
     subtitle: "THE BLUEPRINT",
     title: "Genome & Genes",
-    body: "Every creature carries a genome: a sequence of genes. Each gene encodes one connection — a Source (sensor or neuron), a Weight (how strongly it influences), and a Sink (neuron or action). The genome is the creature's complete brain wiring diagram, packed as a list of 32-bit integers.",
+    body: "Every boat carries a genome: a sequence of genes. Each gene encodes one connection — a Source (sensor or neuron), a Weight (how strongly it influences), and a Sink (neuron or action). The genome is the boat's complete brain wiring diagram, packed as a list of 32-bit integers.",
     visual: (
       <div className="font-mono text-[11px] leading-relaxed text-center space-y-1">
         <div className="text-zinc-500 mb-2">One gene = one synaptic connection</div>
@@ -113,16 +106,16 @@ const STEPS = [
   },
   {
     subtitle: "PERCEPTION",
-    title: "What a Creature Senses",
-    body: "Each creature reads up to 21 sensor channels, all normalized to 0.0–1.0. These tell it where it is, how crowded its neighborhood is, how close walls and barriers are, what pheromone trails are nearby, and more. Genes wire these inputs into the brain.",
+    title: "What a Boat Senses",
+    body: "Each boat reads 10 sensor channels, all normalized to 0.0–1.0. The crucial ones: the wind angle relative to its own heading (am I in the no-go zone?) and the bearing to the target. Genes wire these inputs into the brain — combining them correctly is what evolution must discover.",
     visual: (
       <div className="grid grid-cols-2 gap-1.5 text-[10px]">
         {[
-          { label: "LOC_X / LOC_Y", desc: "Position", color: "text-cyan-300 bg-cyan-950/60 border-cyan-800/40" },
-          { label: "POPULATION", desc: "Neighbors", color: "text-emerald-300 bg-emerald-950/60 border-emerald-800/40" },
-          { label: "BARRIER_FWD", desc: "Walls & Barriers", color: "text-red-300 bg-red-950/60 border-red-800/40" },
-          { label: "BOUNDARY_DIST", desc: "Edge Distance", color: "text-orange-300 bg-orange-950/60 border-orange-800/40" },
-          { label: "SIGNAL0", desc: "Pheromone Trail", color: "text-yellow-300 bg-yellow-950/60 border-yellow-800/40" },
+          { label: "WIND_REL_X/Y", desc: "Wind angle vs. heading", color: "text-cyan-300 bg-cyan-950/60 border-cyan-800/40" },
+          { label: "TARGET_REL_X/Y", desc: "Bearing to target", color: "text-emerald-300 bg-emerald-950/60 border-emerald-800/40" },
+          { label: "TARGET_DIST", desc: "Distance to target", color: "text-violet-300 bg-violet-950/60 border-violet-800/40" },
+          { label: "SPEED", desc: "Am I making progress?", color: "text-orange-300 bg-orange-950/60 border-orange-800/40" },
+          { label: "BOUNDARY_DIST", desc: "Shore proximity", color: "text-yellow-300 bg-yellow-950/60 border-yellow-800/40" },
           { label: "RANDOM / OSC1", desc: "Internal / Random", color: "text-zinc-300 bg-zinc-800/60 border-zinc-700/40" },
         ].map(s => (
           <div key={s.label} className={`rounded border px-2 py-1 ${s.color}`}>
@@ -135,20 +128,20 @@ const STEPS = [
   },
   {
     subtitle: "BEHAVIOR",
-    title: "What a Creature Can Do",
-    body: "Action neurons determine what a creature does each step. It can move in 8 compass directions or relative to its heading, emit pheromone signals for others to sense, tune its own oscillator period, or — if Kill is enabled — attack the creature directly in front of it.",
+    title: "Steering Is Everything",
+    body: "A boat only controls its rudder: turn 45° to port or starboard. It always sails forward — but its speed depends on the angle to the wind. Sailing straight into the wind means standing still (the no-go zone). The fastest course is across the wind. To reach an upwind target, boats must learn to tack in zigzags.",
     visual: (
       <div className="grid grid-cols-3 gap-1 text-[9px]">
         {[
-          { icon: "↑", label: "Forward", color: "text-emerald-400" },
-          { icon: "↙↗", label: "N/S/E/W", color: "text-emerald-400" },
-          { icon: "↺", label: "Random", color: "text-emerald-400" },
-          { icon: "↔", label: "Sideways", color: "text-emerald-400" },
-          { icon: "〰", label: "Emit Signal", color: "text-yellow-400" },
-          { icon: "⏱", label: "Rhythm", color: "text-cyan-400" },
-          { icon: "🔭", label: "Vision", color: "text-cyan-400" },
-          { icon: "📡", label: "Sensitivity", color: "text-cyan-400" },
-          { icon: "⚔", label: "Kill (opt.)", color: "text-red-400" },
+          { icon: "↰", label: "Turn Left", color: "text-emerald-400" },
+          { icon: "↱", label: "Turn Right", color: "text-emerald-400" },
+          { icon: "⛵", label: "Auto-Sail", color: "text-cyan-400" },
+          { icon: "🚫", label: "No-Go: 5%", color: "text-red-400" },
+          { icon: "↗", label: "Close-Hauled: 50%", color: "text-amber-400" },
+          { icon: "→", label: "Beam Reach: 100%", color: "text-emerald-400" },
+          { icon: "↘", label: "Broad Reach: 90%", color: "text-emerald-400" },
+          { icon: "↓", label: "Running: 70%", color: "text-cyan-400" },
+          { icon: "⚡", label: "Speed = Polar", color: "text-violet-400" },
         ].map(a => (
           <div key={a.label} className="bg-zinc-800/70 rounded px-1.5 py-1 text-center">
             <div className={`text-base leading-tight ${a.color}`}>{a.icon}</div>
@@ -161,7 +154,7 @@ const STEPS = [
   {
     subtitle: "THE ENGINE",
     title: "How Evolution Works",
-    body: "Each generation runs for a fixed number of steps. After time is up, every creature is scored by the challenge's fitness function. The top performers become parents: their genomes are copied, crossed over, and mutated to produce the next generation. Over hundreds of generations, useful gene patterns spread through the population.",
+    body: "Each generation is one race. When time is up, every boat is scored: reaching the target quadrant early scores highest, getting close earns a small consolation. The best scores become parents: their genomes are copied, crossed over, and mutated for the next race. Over hundreds of generations, sailing skill spreads through the fleet.",
     visual: (
       <div className="flex items-center justify-center gap-1 flex-wrap text-[9px]">
         {[
@@ -188,17 +181,17 @@ const STEPS = [
   },
   {
     subtitle: "THE RULES",
-    title: "23 Different Challenges",
-    body: "The challenge defines what 'fit' means. In Right Half, survivors must cross to the right side of the arena. In Pairs, each creature must find exactly one partner. In Altruism, the highest scores go to those who sacrifice themselves in a danger zone. Different challenges evolve wildly different behaviors.",
+    title: "The Wind Decides",
+    body: "The target is one quadrant of the sea, the wind blows from one of 8 directions. A downwind target is easy — just run with the wind. An upwind target demands tacking. And the wind shifts over the generations: genomes that memorized compass directions collapse, genomes that navigate relative to the wind keep winning.",
     visual: (
       <div className="grid grid-cols-2 gap-1.5 text-[9px]">
         {[
-          { name: "Right Half", desc: "Reach the right side" },
-          { name: "Migration", desc: "Wander far from spawn" },
-          { name: "Pairs", desc: "Find exactly one partner" },
-          { name: "Altruism", desc: "Sacrifice in the danger zone" },
-          { name: "Boomerang", desc: "Go far and return" },
-          { name: "Hot Potato", desc: "Hit checkpoints in sequence" },
+          { name: "Fixed Wind", desc: "Learn one wind, master it" },
+          { name: "Rotating Wind", desc: "45° shift every N generations" },
+          { name: "Random Wind", desc: "New direction every race" },
+          { name: "Downwind Target", desc: "Easy: run with the wind" },
+          { name: "Upwind Target", desc: "Hard: tack in zigzags" },
+          { name: "Random Target", desc: "A new quadrant every race" },
         ].map(c => (
           <div key={c.name} className="bg-zinc-800/60 rounded border border-zinc-700/30 px-2 py-1.5">
             <div className="text-emerald-400 font-semibold">{c.name}</div>
@@ -210,36 +203,29 @@ const STEPS = [
   },
   {
     subtitle: "READY",
-    title: "Ready to Watch Evolution?",
-    body: "Pick a preset challenge and hit Start. Watch generation 0 — pure noise. Then watch as the fittest genomes take over. The simulation never cheats: no behavior is hand-coded into any creature. Everything you see was discovered by evolution itself.",
+    title: "Ready to Set Sail?",
+    body: "Pick a race and hit Start. Watch generation 0 — boats spinning in circles, stuck in irons. Then watch the fleet learn to sail. The simulation never cheats: no sailing knowledge is hand-coded into any boat. Every tack you see was discovered by evolution itself.",
     visual: (
       <div className="animate-pulse">
         <pre className="font-mono text-[13px] leading-[16px] select-none text-center">
-          <span className="text-yellow-300">{"  ~"}</span>
-          <span className="text-zinc-600">{"\\"}</span>
-          <span className="text-zinc-600">{"  "}</span>
-          <span className="text-zinc-600">{"/"}</span>
-          <span className="text-red-400">{"!"}</span>
+          <span className="text-cyan-400">{"      ~  "}</span>
+          <span className="text-zinc-500">{"≋"}</span>
           {"\n"}
-          <span className="text-cyan-400">{" ◉"}</span>
-          <span className="text-zinc-600">{" "}</span>
-          <span className="text-cyan-400">{"◉"}</span>
-          <span className="text-zinc-600">{" "}</span>
-          <span className="text-cyan-400">{"◉"}</span>
+          <span className="text-zinc-100">{"      |"}</span>
+          <span className="text-emerald-400">{"\\"}</span>
           {"\n"}
-          <span className="text-violet-400">{"╔██████╗"}</span>
+          <span className="text-zinc-100">{"      |"}</span>
+          <span className="text-emerald-400">{" \\"}</span>
           {"\n"}
-          <span className="text-violet-400">{"║◆◆◆◆◆║"}</span>
+          <span className="text-zinc-100">{"      |"}</span>
+          <span className="text-emerald-400">{"  \\"}</span>
           {"\n"}
-          <span className="text-violet-400">{"╚══════╝"}</span>
+          <span className="text-zinc-100">{"      |"}</span>
+          <span className="text-emerald-400">{"___\\"}</span>
           {"\n"}
-          <span className="text-emerald-400">{" ▓▓▓▓▓▓"}</span>
+          <span className="text-violet-400">{"  \\___________/"}</span>
           {"\n"}
-          <span className="text-emerald-400">{" ▓▓▓▓▓▓"}</span>
-          {"\n"}
-          <span className="text-zinc-100">{" ╿    ╿"}</span>
-          {"\n"}
-          <span className="text-zinc-100">{" │    │"}</span>
+          <span className="text-cyan-400">{"~~~~~~~~~~~~~~~~~~~"}</span>
         </pre>
       </div>
     ),

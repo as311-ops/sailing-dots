@@ -21,19 +21,12 @@ export interface GenomeProfile {
 }
 
 const SENSOR_NAMES = [
-  'LOC_X', 'LOC_Y', 'BDIST_X', 'BDIST',
-  'BDIST_Y', 'GEN_SIM', 'LDIR_X', 'LDIR_Y',
-  'LP_POP', 'LP_BAR', 'POP', 'POP_F',
-  'POP_LR', 'OSC', 'AGE', 'BAR_F',
-  'BAR_LR', 'RND', 'SIG0', 'SIG0_F', 'SIG0_LR',
+  'WIND_X', 'WIND_Y', 'TGT_X', 'TGT_Y',
+  'TGT_D', 'BDIST', 'SPD', 'OSC',
+  'AGE', 'RND',
 ];
 
-const ACTION_NAMES = [
-  'MV_X', 'MV_Y', 'MV_FWD', 'MV_RL', 'MV_RND',
-  'SET_OSC', 'SET_PRB', 'SET_RSP', 'EMIT',
-  'MV_E', 'MV_W', 'MV_N', 'MV_S',
-  'MV_L', 'MV_R', 'MV_REV', 'KILL',
-];
+const ACTION_NAMES = ['TURN_L', 'TURN_R'];
 
 export function computeGenomeProfile(
   genomes: Genome[],

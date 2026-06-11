@@ -16,12 +16,10 @@ interface SimConfig {
   pointMutationRate: number;
   sexualReproduction: boolean;
   chooseParentsByFitness: boolean;
-  killEnable: boolean;
-  populationSensorRadius: number;
-  signalLayers: number;
-  longProbeDistance: number;
-  challenge: number;
-  barrierType: number;
+  windMode: 'fixed' | 'rotate' | 'random';
+  windDirection: number;
+  windRotatePeriod: number;
+  targetQuadrant: number;
   responsivenessCurveKFactor: number;
 }
 
@@ -36,7 +34,7 @@ type WorkerCommand =
 
 type WorkerMessage =
   | { type: 'state'; state: SimState }
-  | { type: 'generation'; stats: { generation: number; survivors: number; population: number; diversity: number; avgFitness: number; genomeProfile: GenomeProfile | null; championSnapshot: ChampionSnapshot | null } }
+  | { type: 'generation'; stats: { generation: number; survivors: number; population: number; diversity: number; avgFitness: number; finisherRate: number; avgArrivalTick: number; genomeProfile: GenomeProfile | null; championSnapshot: ChampionSnapshot | null } }
   | { type: 'agentInfo'; info: AgentInfo | null }
   | { type: 'perf'; stats: { stepsPerSecond: number; generationsPerSecond: number; stateUpdatesPerSecond: number; avgBurstSteps: number } }
   | { type: 'ready' };
@@ -66,12 +64,10 @@ function configToParams(config: SimConfig) {
     pointMutationRate: config.pointMutationRate,
     sexualReproduction: config.sexualReproduction,
     chooseParentsByFitness: config.chooseParentsByFitness,
-    killEnable: config.killEnable,
-    populationSensorRadius: config.populationSensorRadius,
-    signalLayers: config.signalLayers,
-    longProbeDistance: config.longProbeDistance,
-    challenge: config.challenge,
-    barrierType: config.barrierType,
+    windMode: config.windMode,
+    windDirection: config.windDirection,
+    windRotatePeriod: config.windRotatePeriod,
+    targetQuadrant: config.targetQuadrant,
     responsivenessCurveKFactor: config.responsivenessCurveKFactor,
   };
 }
@@ -90,13 +86,12 @@ function sendState(): void {
   post({ type: 'state', state }, [
     state.agentLocations.buffer,
     state.agentColors.buffer,
+    state.agentHeadings.buffer,
     state.barrierLocations.buffer,
-    state.killEvents.buffer,
-    ...state.signalLayers.map(l => l.buffer),
   ]);
 }
 
-function sendGeneration(result: { survivors: number; diversity: number; avgFitness: number; genomeProfile: GenomeProfile | null; championSnapshot: ChampionSnapshot | null }): void {
+function sendGeneration(result: { survivors: number; diversity: number; avgFitness: number; finisherRate: number; avgArrivalTick: number; genomeProfile: GenomeProfile | null; championSnapshot: ChampionSnapshot | null }): void {
   if (!simulator) return;
   post({
     type: 'generation',
@@ -106,6 +101,8 @@ function sendGeneration(result: { survivors: number; diversity: number; avgFitne
       population: simulator.params.population,
       diversity: result.diversity,
       avgFitness: result.avgFitness,
+      finisherRate: result.finisherRate,
+      avgArrivalTick: result.avgArrivalTick,
       genomeProfile: result.genomeProfile,
       championSnapshot: result.championSnapshot,
     },
@@ -244,9 +241,10 @@ self.onmessage = (e: MessageEvent<WorkerCommand>) => {
         const c = msg.config;
         if (c.pointMutationRate !== undefined) simulator.params.pointMutationRate = c.pointMutationRate;
         if (c.responsivenessCurveKFactor !== undefined) simulator.params.responsivenessCurveKFactor = c.responsivenessCurveKFactor;
-        if (c.populationSensorRadius !== undefined) simulator.params.populationSensorRadius = c.populationSensorRadius;
-        if (c.longProbeDistance !== undefined) simulator.params.longProbeDistance = c.longProbeDistance;
-        if (c.killEnable !== undefined) simulator.params.killEnable = c.killEnable;
+        if (c.windMode !== undefined) simulator.params.windMode = c.windMode;
+        if (c.windDirection !== undefined) simulator.params.windDirection = c.windDirection;
+        if (c.windRotatePeriod !== undefined) simulator.params.windRotatePeriod = c.windRotatePeriod;
+        if (c.targetQuadrant !== undefined) simulator.params.targetQuadrant = c.targetQuadrant;
         if (c.sexualReproduction !== undefined) simulator.params.sexualReproduction = c.sexualReproduction;
         if (c.chooseParentsByFitness !== undefined) simulator.params.chooseParentsByFitness = c.chooseParentsByFitness;
       }

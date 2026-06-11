@@ -42,7 +42,7 @@ export default function AgentInspector({ info, onClose }: AgentInspectorProps) {
       <div className="grid grid-cols-3 gap-2">
         <Stat label="Position" value={`${info.x}, ${info.y}`} />
         <Stat label="Age" value={String(info.age)} />
-        <Stat label="Direction" value={DIR_NAMES[info.lastMoveDir] ?? '?'} />
+        <Stat label="Heading" value={DIR_NAMES[info.heading] ?? '?'} />
         <Stat label="Genome" value={`${info.genomeLength} genes`} />
         <Stat label="Neurons" value={String(info.neuronCount)} />
         <Stat label="Conn." value={String(info.connectionCount)} />

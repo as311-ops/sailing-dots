@@ -1,0 +1,58 @@
+import { describe, expect, it } from 'vitest';
+import { Simulator } from './simulator';
+import { Compass } from './types';
+
+describe('Regatta end-to-end', () => {
+  it('boats evolve toward the target over generations (downwind)', () => {
+    const sim = new Simulator({
+      sizeX: 64,
+      sizeY: 64,
+      population: 200,
+      stepsPerGeneration: 150,
+      windMode: 'fixed',
+      windDirection: Compass.N,
+      targetQuadrant: 1, // SE — in Lee, gut erreichbar
+      genomeInitialLengthMin: 16,
+      genomeInitialLengthMax: 16,
+    });
+    sim.init();
+
+    const finisherRates: number[] = [];
+    for (let gen = 0; gen < 30; gen++) {
+      const result = sim.runGeneration();
+      finisherRates.push(result.finisherRate);
+    }
+
+    const early = finisherRates.slice(0, 5).reduce((a, b) => a + b, 0) / 5;
+    const late = finisherRates.slice(-5).reduce((a, b) => a + b, 0) / 5;
+
+    // Spätere Generationen müssen deutlich besser segeln als Generation 0-4
+    expect(late).toBeGreaterThan(early);
+    expect(late).toBeGreaterThan(0.2);
+  });
+
+  it('produces a valid state snapshot with headings and wind', () => {
+    const sim = new Simulator({
+      sizeX: 32,
+      sizeY: 32,
+      population: 50,
+      stepsPerGeneration: 50,
+      windMode: 'fixed',
+      windDirection: Compass.W,
+      targetQuadrant: 3,
+    });
+    sim.init();
+    sim.step();
+
+    const state = sim.getState();
+    expect(state.agentHeadings.length).toBe(state.population);
+    expect(state.windFrom).toBe(Compass.W);
+    expect(state.targetQuadrant).toBe(3);
+    // Headings sind echte Richtungen, nie CENTER (4)
+    for (const h of state.agentHeadings) {
+      expect(h).not.toBe(4);
+      expect(h).toBeGreaterThanOrEqual(0);
+      expect(h).toBeLessThanOrEqual(8);
+    }
+  });
+});

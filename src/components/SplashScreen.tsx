@@ -35,49 +35,40 @@ export default function SplashScreen({ onStart, onOpenTutorial }: SplashScreenPr
       {/* Main content */}
       <div className="relative z-10 flex flex-col items-center px-6 py-12 max-w-2xl w-full">
 
-        {/* ASCII creature as logo */}
+        {/* ASCII sailboat as logo */}
         <pre className="font-mono text-[14px] leading-[16px] select-none mb-6 text-center">
-          <span className="text-yellow-300">{"  ~"}</span>
-          <span className="text-zinc-600">{"\\"}</span>
-          <span className="text-zinc-600">{"  "}</span>
-          <span className="text-zinc-600">{"/"}</span>
-          <span className="text-red-400">{"!"}</span>
+          <span className="text-cyan-400">{"      ~  "}</span>
+          <span className="text-zinc-500">{"≋"}</span>
           {"\n"}
-          <span className="text-cyan-400">{" ◉"}</span>
-          <span className="text-zinc-600">{" "}</span>
-          <span className="text-cyan-400">{"◉"}</span>
-          <span className="text-zinc-600">{" "}</span>
-          <span className="text-cyan-400">{"◉"}</span>
+          <span className="text-zinc-100">{"      |"}</span>
+          <span className="text-emerald-400">{"\\"}</span>
           {"\n"}
-          <span className="text-violet-400">{"╔██████╗"}</span>
+          <span className="text-zinc-100">{"      |"}</span>
+          <span className="text-emerald-400">{" \\"}</span>
           {"\n"}
-          <span className="text-violet-400">{"║"}</span>
-          <span className="text-violet-400">{"◆◆◆◆◆"}</span>
-          <span className="text-violet-400">{"║"}</span>
+          <span className="text-zinc-100">{"      |"}</span>
+          <span className="text-emerald-400">{"  \\"}</span>
           {"\n"}
-          <span className="text-violet-400">{"╚══════╝"}</span>
+          <span className="text-zinc-100">{"      |"}</span>
+          <span className="text-emerald-400">{"___\\"}</span>
           {"\n"}
-          <span className="text-emerald-400">{" ▓▓▓▓▓▓"}</span>
+          <span className="text-violet-400">{"  \\___________/"}</span>
           {"\n"}
-          <span className="text-emerald-400">{" ▓▓▓▓▓▓"}</span>
-          {"\n"}
-          <span className="text-zinc-100">{" ╿    ╿"}</span>
-          {"\n"}
-          <span className="text-zinc-100">{" │    │"}</span>
+          <span className="text-cyan-400">{"~~~~~~~~~~~~~~~~~~~"}</span>
         </pre>
 
         {/* Title */}
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-center mb-2">
-          <span className="text-emerald-400">Darwin's</span>{" "}
-          <span className="text-zinc-100">Arena</span>
+          <span className="text-emerald-400">Sailing</span>{" "}
+          <span className="text-zinc-100">Dots</span>
         </h1>
 
         {/* Subtitle */}
         <p className="text-zinc-500 text-sm text-center mb-1">
-          Natural Selection in Real Time
+          Evolution Under Sail
         </p>
         <p className="text-zinc-600 text-xs text-center mb-4">
-          Watch neural networks evolve to master challenges
+          Watch neural networks learn to tack against the wind
         </p>
 
         {onOpenTutorial && (
@@ -95,13 +86,11 @@ export default function SplashScreen({ onStart, onOpenTutorial }: SplashScreenPr
         {/* Preset selection */}
         <div className="w-full max-w-md">
           <p className="text-[10px] text-zinc-500 uppercase tracking-widest text-center mb-4">
-            Choose Your Challenge
+            Choose Your Race
           </p>
 
           <div className="grid grid-cols-2 gap-2 mb-6">
-            {PRESETS.map((preset, i) => {
-              const isKill = preset.config.killEnable;
-              return (
+            {PRESETS.map((preset, i) => (
               <button
                 key={preset.name}
                 onClick={() => onStart({ ...DEFAULT_CONFIG, ...preset.config })}
@@ -109,16 +98,12 @@ export default function SplashScreen({ onStart, onOpenTutorial }: SplashScreenPr
                 onMouseLeave={() => setHoveredPreset(null)}
                 className={`text-left rounded-lg px-3 py-3 transition-all duration-200 border ${
                   hoveredPreset === i
-                    ? isKill
-                      ? "bg-red-950/50 border-red-800/60 shadow-lg shadow-red-900/20"
-                      : "bg-emerald-950/50 border-emerald-800/60 shadow-lg shadow-emerald-900/20"
+                    ? "bg-emerald-950/50 border-emerald-800/60 shadow-lg shadow-emerald-900/20"
                     : "bg-zinc-900/60 border-zinc-800/60 hover:border-zinc-700"
                 }`}
               >
                 <div className={`text-sm font-semibold transition-colors ${
-                  hoveredPreset === i
-                    ? isKill ? "text-red-300" : "text-emerald-300"
-                    : "text-zinc-200"
+                  hoveredPreset === i ? "text-emerald-300" : "text-zinc-200"
                 }`}>
                   {preset.name}
                 </div>
@@ -126,8 +111,7 @@ export default function SplashScreen({ onStart, onOpenTutorial }: SplashScreenPr
                   {preset.description}
                 </div>
               </button>
-              );
-            })}
+            ))}
           </div>
 
           {/* Custom start */}
@@ -145,7 +129,7 @@ export default function SplashScreen({ onStart, onOpenTutorial }: SplashScreenPr
         {/* Footer */}
         <div className="mt-12 text-center">
           <p className="text-[9px] text-zinc-700 italic">
-            "It is not the strongest of the species that survives, but the one most adaptable to change."
+            "You can't change the wind, but you can adjust your sails."
           </p>
           <p className="text-[9px] text-zinc-700 mt-1">
             — inspired by biosim4

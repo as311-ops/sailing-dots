@@ -36,13 +36,13 @@ export function generateCommentary(input: CommentaryInput): CommentaryLine[] {
   // --- Generation milestones ---
   if (generation === 1) {
     lines.push({
-      text: `Welcome to the ${challengeName} Challenge! ${population} Darwin-Dots are lining up at the start. Who will make it to the goal zone?`,
+      text: `Welcome to the ${challengeName} Challenge! ${population} boats are lining up at the start. Who will make it to the goal zone?`,
       type: 'hype',
       generation,
     });
   } else if (generation % 50 === 0) {
     lines.push({
-      text: `Generation ${generation}! ${survivors} out of ${population} made it — a survival rate of ${pct(rate)}.`,
+      text: `Generation ${generation}! ${survivors} out of ${population} made it — a finisher rate of ${pct(rate)}.`,
       type: 'milestone',
       generation,
     });
@@ -53,8 +53,8 @@ export function generateCommentary(input: CommentaryInput): CommentaryLine[] {
     if (rateChange > 0.15) {
       lines.push({
         text: pick([
-          `UNBELIEVABLE! The survival rate is skyrocketing — from ${pct(prevRate)} to ${pct(rate)}! Evolution just shifted into high gear!`,
-          `What a leap! ${pct(rate)} survivors! The training is paying off — the Darwin-Dots have learned something crucial!`,
+          `UNBELIEVABLE! The finisher rate is skyrocketing — from ${pct(prevRate)} to ${pct(rate)}! Evolution just shifted into high gear!`,
+          `What a leap! ${pct(rate)} survivors! The training is paying off — the boats have learned something crucial!`,
           `BREAKTHROUGH in generation ${generation}! ${survivors} survivors — that's a new record for this population!`,
         ]),
         type: 'hype',
@@ -72,7 +72,7 @@ export function generateCommentary(input: CommentaryInput): CommentaryLine[] {
     } else if (rateChange < -0.1) {
       lines.push({
         text: pick([
-          `Ouch! The survival rate drops to ${pct(rate)}. Were the mutations too aggressive?`,
+          `Ouch! The finisher rate drops to ${pct(rate)}. Were the mutations too aggressive?`,
           `Setback! Only ${survivors} survivors left. This generation just doesn't have it.`,
           `That hurts — down from ${pct(prevRate)} to ${pct(rate)}. Sometimes evolution takes a step backward.`,
         ]),
@@ -106,7 +106,7 @@ export function generateCommentary(input: CommentaryInput): CommentaryLine[] {
       lines.push({
         text: pick([
           `The playbook is getting tighter! Fewer tricks, more focus. This squad knows what it wants.`,
-          `Trimming the fat! The Darwin-Dots are ditching bad habits and doubling down on what works.`,
+          `Trimming the fat! The boats are ditching bad habits and doubling down on what works.`,
           `Convergence alert! The population is locking in on a winning formula.`,
         ]),
         type: 'analysis',
@@ -120,7 +120,7 @@ export function generateCommentary(input: CommentaryInput): CommentaryLine[] {
     if (diversityChange < -0.1) {
       lines.push({
         text: pick([
-          `Genetic diversity is dropping fast. The Darwin-Dots are looking more and more alike — a dominant genome is taking over.`,
+          `Genetic diversity is dropping fast. The boats are looking more and more alike — a dominant genome is taking over.`,
           `Monoculture incoming! Diversity falls to ${pct(diversity)}. A winning genome is pushing out the competition.`,
         ]),
         type: 'analysis',
@@ -205,7 +205,7 @@ export function generateSummary(input: SummaryInput): MatchSummary {
   // --- Build headline ---
   let headline: string;
   if (lastRate > 0.7) {
-    headline = `Dominant Victory: ${pct(lastRate)} survival rate after ${totalGenerations} generations!`;
+    headline = `Dominant Victory: ${pct(lastRate)} finisher rate after ${totalGenerations} generations!`;
   } else if (lastRate > 0.3) {
     headline = `Solid Result: ${challengeName} Challenge conquered with ${pct(lastRate)}`;
   } else if (lastRate > 0.05) {
@@ -221,8 +221,8 @@ export function generateSummary(input: SummaryInput): MatchSummary {
 
   // Opening
   paras.push(
-    `${population} Darwin-Dots competed across ${totalGenerations} generations in the ${challengeName} Challenge. ` +
-    `The survival rate started at ${pct(firstRate)} and ended at ${pct(lastRate)} — ` +
+    `${population} boats competed across ${totalGenerations} generations in the ${challengeName} Challenge. ` +
+    `The finisher rate started at ${pct(firstRate)} and ended at ${pct(lastRate)} — ` +
     (lastRate > firstRate
       ? `a clear improvement of ${pct(lastRate - firstRate)}.`
       : lastRate < firstRate
@@ -249,7 +249,7 @@ export function generateSummary(input: SummaryInput): MatchSummary {
 
   // Diversity analysis
   if (lastDiv < 0.3 && firstDiv > 0.5) {
-    paras.push(`Genetic diversity dropped from ${pct(firstDiv)} to ${pct(lastDiv)}. A dominant genome has taken over — the Darwin-Dots are practically clones.`);
+    paras.push(`Genetic diversity dropped from ${pct(firstDiv)} to ${pct(lastDiv)}. A dominant genome has taken over — the boats are practically clones.`);
   } else if (lastDiv > 0.7) {
     paras.push(`Diversity remained high at ${pct(lastDiv)}. The population hasn't found a unified formula for success yet.`);
   } else {
@@ -284,13 +284,13 @@ export function generateSummary(input: SummaryInput): MatchSummary {
   // Closing
   if (lastRate > 0.5) {
     paras.push(pick([
-      `An impressive feat of evolution. The Darwin-Dots have this challenge firmly in hand.`,
+      `An impressive feat of evolution. The boats have this challenge firmly in hand.`,
       `Darwin would be proud. This population has figured out what it takes.`,
       `Bottom line: Natural selection delivers — ${pct(lastRate)} reliably find the way.`,
     ]));
   } else if (lastRate > 0) {
     paras.push(pick([
-      `There's still room to grow. More generations could push the survival rate even higher.`,
+      `There's still room to grow. More generations could push the finisher rate even higher.`,
       `Evolution is working — slowly but steadily. Stay tuned!`,
     ]));
   } else {
@@ -310,7 +310,7 @@ export function generateSummary(input: SummaryInput): MatchSummary {
     if (topSensors.length > 0) {
       const senseStr = topSensors.join(', ');
       strategyExplainer = pick([
-        `The winning Darwin-Dots learned to sense ${senseStr} and navigate toward the goal. They didn't read a manual — they evolved this behavior from pure randomness over ${totalGenerations} generations.`,
+        `The winning boats learned to sense ${senseStr} and navigate toward the goal. They didn't read a manual — they evolved this behavior from pure randomness over ${totalGenerations} generations.`,
         `Here's what the champions figured out: read ${senseStr}, then act on it. No brain, no plan — just ${finalProfile.avgGenomeLength} genes and natural selection doing its thing.`,
         `The secret sauce? Use ${senseStr} as a compass and let the neural network figure out the rest. Simple? Yes. But it took ${totalGenerations} generations of trial, error, and elimination to discover it.`,
       ]);
@@ -324,7 +324,7 @@ export function generateSummary(input: SummaryInput): MatchSummary {
     ? pick([
         `"It is not the strongest of the species that survives, nor the most intelligent that survives. It is the one that is the most adaptable to change." — Well, these little dots just proved me right.`,
         `"There is grandeur in this view of life... from so simple a beginning, endless forms most beautiful have been evolved." — I said that about finches, but I suppose colored pixels count too.`,
-        `"A man who dares to waste one hour of time has not discovered the value of life." — These dots wasted zero hours. ${pct(lastRate)} survival rate. Efficient little creatures.`,
+        `"A man who dares to waste one hour of time has not discovered the value of life." — These dots wasted zero hours. ${pct(lastRate)} finisher rate. Efficient little creatures.`,
         `"The love for all living creatures is the most noble attribute of man." — Watching ${population} dots fight for survival... yes, I suppose this is what I meant.`,
       ])
     : lastRate > 0
@@ -394,7 +394,7 @@ function describeStrategy(conns: ConnectionProfile[], survivalRate: number): str
   return pick([
     `They're tuning into "${senseStr}" but can't quite translate it into results yet. Needs work!`,
     `The senses are there — "${senseStr}" — but the execution is shaky. Back to the training ground!`,
-    `"${senseStr}" is on the radar, but these Darwin-Dots need more reps to figure it out!`,
+    `"${senseStr}" is on the radar, but these boats need more reps to figure it out!`,
     `Reading "${senseStr}"... on paper it's a plan, on the field it's chaos. Classic early-season form!`,
   ]);
 }

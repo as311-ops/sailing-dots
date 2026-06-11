@@ -10,173 +10,53 @@ export interface Preset {
 
 export const PRESETS: Preset[] = [
   {
-    name: "Quick Start",
-    description: "Simple challenge, fast results. Perfect for getting started.",
+    name: "First Regatta",
+    description: "Steady north wind, target downwind in the southeast. Learn to sail before you learn to fight the wind.",
     config: {
-      challenge: 1, // Right Half
+      windMode: 'fixed',
+      windDirection: 7, // N
+      targetQuadrant: 1, // SE — in Lee, einfach ablaufen
       population: 1000,
       stepsPerGeneration: 300,
       maxGenerations: 200,
-      genomeInitialLength: 24,
-      maxNumberNeurons: 5,
-      pointMutationRate: 0.001,
-      barrierType: 0,
     },
   },
   {
-    name: "Swarms",
-    description: "Large population, 4 corners as target. Watch colorful clusters form.",
+    name: "Upwind Battle",
+    description: "Steady north wind — but the target lies upwind in the northeast. Only boats that learn to tack will arrive.",
     config: {
-      challenge: 7, // Corners weighted
-      population: 2000,
-      stepsPerGeneration: 200,
-      maxGenerations: 300,
-      genomeInitialLength: 24,
-      maxNumberNeurons: 5,
-      pointMutationRate: 0.001,
-      barrierType: 0,
-    },
-  },
-  {
-    name: "Maze",
-    description: "The center is the goal — but a cross of walls blocks the way.",
-    config: {
-      challenge: 4, // Center weighted
+      windMode: 'fixed',
+      windDirection: 7, // N
+      targetQuadrant: 3, // NE — in Luv, Kreuzen nötig
       population: 1000,
-      stepsPerGeneration: 300,
-      maxGenerations: 500,
-      genomeInitialLength: 24,
-      maxNumberNeurons: 5,
-      pointMutationRate: 0.001,
-      barrierType: 3, // Five blocks
-    },
-  },
-  {
-    name: "Apocalypse",
-    description: "Radioactive walls close in from all sides. Only the fastest survive.",
-    config: {
-      challenge: 11, // Radioactive Walls
-      population: 2000,
       stepsPerGeneration: 500,
-      maxGenerations: 300,
-      genomeInitialLength: 24,
-      maxNumberNeurons: 5,
-      pointMutationRate: 0.002,
-      barrierType: 0,
-    },
-  },
-  {
-    name: "Dating",
-    description: "Find exactly one partner. No love triangles. Monogamy or death.",
-    config: {
-      challenge: 16, // Pairs
-      population: 1000,
-      stepsPerGeneration: 300,
-      maxGenerations: 1000,
-      genomeInitialLength: 24,
-      maxNumberNeurons: 8,
-      pointMutationRate: 0.001,
-      barrierType: 0,
-    },
-  },
-  {
-    name: "Nomads",
-    description: "The farther from birth, the better. Couch potatoes go extinct.",
-    config: {
-      challenge: 8, // Migration distance
-      population: 1000,
-      stepsPerGeneration: 300,
-      maxGenerations: 300,
-      genomeInitialLength: 24,
-      maxNumberNeurons: 5,
-      pointMutationRate: 0.001,
-      barrierType: 0,
-    },
-  },
-  {
-    name: "The Tide",
-    description: "A safe zone drifts back and forth. Follow the wave or vanish.",
-    config: {
-      challenge: 19,
-      population: 1000,
-      stepsPerGeneration: 600,
       maxGenerations: 500,
-      genomeInitialLength: 32,
-      maxNumberNeurons: 8,
-      pointMutationRate: 0.001,
-      barrierType: 0,
     },
   },
   {
-    name: "Hunt or Hide",
-    description: "Kill rivals or outlast them. Kill Enable is on — this gets brutal.",
+    name: "Shifting Winds",
+    description: "The wind rotates 45° every 30 generations, the target changes each race. Adapt or fall behind.",
     config: {
-      challenge: 20,
+      windMode: 'rotate',
+      windDirection: 7,
+      windRotatePeriod: 30,
+      targetQuadrant: -1,
       population: 1000,
-      stepsPerGeneration: 300,
+      stepsPerGeneration: 400,
       maxGenerations: 500,
-      genomeInitialLength: 32,
-      maxNumberNeurons: 8,
-      pointMutationRate: 0.001,
-      killEnable: true,
-      barrierType: 0,
     },
   },
   {
-    name: "Hot Potato",
-    description: "Three zones, three phases. Miss two and you're culled.",
+    name: "Storm Lottery",
+    description: "Random wind and random target every single generation. Only true navigators survive this.",
     config: {
-      challenge: 21,
-      population: 1000,
-      stepsPerGeneration: 600,
-      maxGenerations: 500,
-      genomeInitialLength: 40,
-      maxNumberNeurons: 10,
-      pointMutationRate: 0.001,
-      barrierType: 0,
-    },
-  },
-  {
-    name: "Boomerang",
-    description: "Reach the far corner — then find your way back home.",
-    config: {
-      challenge: 22,
-      population: 1000,
-      stepsPerGeneration: 600,
-      maxGenerations: 500,
-      genomeInitialLength: 40,
-      maxNumberNeurons: 10,
-      pointMutationRate: 0.001,
-      barrierType: 0,
-    },
-  },
-  {
-    name: "Kill Bill",
-    description: "Reach the center circle — and eliminate your rivals. Kill or be killed.",
-    config: {
-      challenge: 5, // Center (Unweighted)
-      population: 1000,
-      stepsPerGeneration: 300,
-      maxGenerations: 500,
-      genomeInitialLength: 32,
-      maxNumberNeurons: 8,
-      pointMutationRate: 0.001,
-      killEnable: true,
-      barrierType: 0,
-    },
-  },
-  {
-    name: "Geniuses",
-    description: "Big brains, many genes, slow mutation. Complex strategies take time.",
-    config: {
-      challenge: 7, // Corners weighted
-      population: 500,
+      windMode: 'random',
+      targetQuadrant: -1,
+      population: 1500,
       stepsPerGeneration: 400,
       maxGenerations: 1000,
-      genomeInitialLength: 64,
-      maxNumberNeurons: 15,
-      pointMutationRate: 0.0005,
-      barrierType: 0,
+      genomeInitialLength: 32,
+      maxNumberNeurons: 8,
     },
   },
 ];

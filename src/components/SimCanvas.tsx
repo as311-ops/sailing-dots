@@ -24,6 +24,9 @@ interface SimCanvasProps {
   height: number;
   running?: boolean;
   onToggle?: () => void;
+  /** Name/Beschreibung des gewählten Rennens für die Intro-Karte */
+  raceName?: string;
+  raceBrief?: string;
 }
 
 // Normalisierte Koordinaten je Compass-Wert (Index = Compass-Enum, y+ = Nord)
@@ -42,6 +45,8 @@ export default function SimCanvas({
   height,
   running = false,
   onToggle,
+  raceName,
+  raceBrief,
 }: SimCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const prevGenRef = useRef<number>(0);
@@ -394,16 +399,18 @@ export default function SimCanvas({
 
       {showChallengeIntro && (() => {
         const info = CHALLENGE_INFO[0];
-        if (!info) return null;
+        const title = raceName ?? info?.title;
+        const brief = raceBrief ?? info?.brief;
+        if (!title) return null;
         return (
           <div
             className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none rounded-lg"
             style={{ animation: 'challengeIntroFade 3.2s ease-out forwards' }}
           >
             <div className="bg-zinc-950/80 backdrop-blur-sm border border-zinc-700/50 rounded-xl px-6 py-4 max-w-[80%] text-center shadow-2xl">
-              <div className="text-[10px] text-emerald-500 font-mono uppercase tracking-widest mb-1">Challenge</div>
-              <div className="text-base font-bold text-zinc-100 mb-1">{info.title}</div>
-              <div className="text-xs text-zinc-400 leading-snug">{info.brief}</div>
+              <div className="text-[10px] text-emerald-500 font-mono uppercase tracking-widest mb-1">Race</div>
+              <div className="text-base font-bold text-zinc-100 mb-1">{title}</div>
+              <div className="text-xs text-zinc-400 leading-snug">{brief}</div>
             </div>
           </div>
         );

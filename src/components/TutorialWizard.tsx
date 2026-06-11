@@ -6,7 +6,7 @@ import { PRESETS } from "./Presets";
 
 interface TutorialWizardProps {
   onClose: () => void;
-  onFinish: (startConfig?: SimConfig) => void;
+  onFinish: (startConfig?: SimConfig, race?: { name: string; description: string }) => void;
   fromSplash: boolean;
 }
 
@@ -241,7 +241,10 @@ export default function TutorialWizard({ onClose, onFinish, fromSplash }: Tutori
   const handleFinish = () => {
     if (fromSplash) {
       const quickStart = PRESETS[0];
-      onFinish({ ...DEFAULT_CONFIG, ...quickStart.config });
+      onFinish(
+        { ...DEFAULT_CONFIG, ...quickStart.config },
+        { name: quickStart.name, description: quickStart.description },
+      );
     } else {
       onFinish();
     }

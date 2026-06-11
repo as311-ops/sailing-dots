@@ -4,7 +4,7 @@ import { DEFAULT_CONFIG } from "./ControlPanel";
 import { PRESETS } from "./Presets";
 
 interface SplashScreenProps {
-  onStart: (config: SimConfig) => void;
+  onStart: (config: SimConfig, race?: { name: string; description: string }) => void;
   onOpenTutorial?: () => void;
 }
 
@@ -93,7 +93,10 @@ export default function SplashScreen({ onStart, onOpenTutorial }: SplashScreenPr
             {PRESETS.map((preset, i) => (
               <button
                 key={preset.name}
-                onClick={() => onStart({ ...DEFAULT_CONFIG, ...preset.config })}
+                onClick={() => onStart(
+                  { ...DEFAULT_CONFIG, ...preset.config },
+                  { name: preset.name, description: preset.description },
+                )}
                 onMouseEnter={() => setHoveredPreset(i)}
                 onMouseLeave={() => setHoveredPreset(null)}
                 className={`text-left rounded-lg px-3 py-3 transition-all duration-200 border ${

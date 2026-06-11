@@ -96,7 +96,7 @@ interface ControlPanelProps {
   onStart: () => void;
   onPause: () => void;
   onReset: () => void;
-  onPreset: (config: SimConfig) => void;
+  onPreset: (config: SimConfig, race?: { name: string; description: string }) => void;
   speed: number;
   onSpeedChange: (v: number) => void;
   championGenome?: Genome | null;
@@ -373,7 +373,10 @@ export default function ControlPanel({
           {PRESETS.map((preset) => (
             <button
               key={preset.name}
-              onClick={() => onPreset({ ...DEFAULT_CONFIG, ...preset.config })}
+              onClick={() => onPreset(
+                { ...DEFAULT_CONFIG, ...preset.config },
+                { name: preset.name, description: preset.description },
+              )}
               disabled={running}
               className="text-left bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40
                          rounded-md px-2.5 py-2 transition-colors group"

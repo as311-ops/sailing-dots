@@ -116,9 +116,17 @@ function SsKpi({ banner }: { banner: { survivors: number; population: number; st
   );
 }
 
+type RaceInfo = { name: string; description: string };
+
 export default function App() {
   const [config, setConfig] = useState<SimConfig>(
     IS_SCREENSAVER ? { ...DEFAULT_CONFIG, ...PRESETS[SCREENSAVER_INITIAL_IDX].config } : DEFAULT_CONFIG
+  );
+  // Das gewählte Rennen (Preset) — steuert Banner, Canvas-Intro und Commentary
+  const [race, setRace] = useState<RaceInfo | null>(
+    IS_SCREENSAVER
+      ? { name: PRESETS[SCREENSAVER_INITIAL_IDX].name, description: PRESETS[SCREENSAVER_INITIAL_IDX].description }
+      : null
   );
   const [commentaryLines, setCommentaryLines] = useState<CommentaryLine[]>([]);
   const [summary, setSummary] = useState<MatchSummary | null>(null);
@@ -176,8 +184,10 @@ export default function App() {
     const gen = history[history.length - 1].generation;
     if (gen > 0 && gen % SCREENSAVER_CYCLE_GENS === 0) {
       screensaverPresetIdx.current = Math.floor(Math.random() * PRESETS.length);
-      const nextConfig = { ...DEFAULT_CONFIG, ...PRESETS[screensaverPresetIdx.current].config };
+      const nextPreset = PRESETS[screensaverPresetIdx.current];
+      const nextConfig = { ...DEFAULT_CONFIG, ...nextPreset.config };
       setConfig(nextConfig);
+      setRace({ name: nextPreset.name, description: nextPreset.description });
       reset(nextConfig);
       setTimeout(() => start(), 100);
     }
@@ -239,7 +249,7 @@ export default function App() {
       prevSurvivors: prevStats?.survivors ?? 0,
       prevDiversity: prevStats?.diversity ?? 0,
       prevProfile: prevProfileRef.current,
-      challengeName: CHALLENGE_LABEL,
+      challengeName: race?.name ?? CHALLENGE_LABEL,
     });
 
     if (lines.length > 0) {
@@ -260,7 +270,7 @@ export default function App() {
         i === history.length - 1 ? { ...h, genomeProfile: genomeProfile } : h
       );
       const s = generateSummary({
-        challengeName: CHALLENGE_LABEL,
+        challengeName: race?.name ?? CHALLENGE_LABEL,
         population: config.population,
         totalGenerations: history.length,
         history: historyForSummary,
@@ -291,7 +301,7 @@ export default function App() {
           i === history.length - 1 ? { ...h, genomeProfile: genomeProfile } : h
         );
         const s = generateSummary({
-          challengeName: CHALLENGE_LABEL,
+          challengeName: race?.name ?? CHALLENGE_LABEL,
           population: config.population,
           totalGenerations: history.length,
           history: historyForSummary,
@@ -325,16 +335,20 @@ export default function App() {
     setShowSplash(true);
   }, [running, pause]);
 
-  const handlePreset = useCallback((presetConfig: SimConfig) => {
+  const handlePreset = useCallback((presetConfig: SimConfig, selectedRace?: RaceInfo) => {
     setConfig(presetConfig);
+    setRace(selectedRace ?? null);
     reset(presetConfig);
     setCommentaryLines([]);
     setSummary(null);
   }, [reset]);
 
-  const handleSplashStart = useCallback((presetConfig: SimConfig) => {
+  const handleSplashStart = useCallback((presetConfig: SimConfig, selectedRace?: RaceInfo) => {
     setConfig(presetConfig);
+    setRace(selectedRace ?? null);
     reset(presetConfig);
+    setCommentaryLines([]);
+    setSummary(null);
     setShowSplash(false);
     // Auto-start after a brief delay for the spawn animation
     setTimeout(() => start(), 100);
@@ -349,13 +363,13 @@ export default function App() {
     setShowTutorial(false);
   }, []);
 
-  const handleTutorialFinish = useCallback((presetConfig?: SimConfig) => {
+  const handleTutorialFinish = useCallback((presetConfig?: SimConfig, selectedRace?: RaceInfo) => {
     try {
       localStorage.setItem('sailing_dots_tutorial_seen', '1');
     } catch { /* localStorage nicht verfügbar */ }
     setShowTutorial(false);
     if (presetConfig) {
-      handleSplashStart(presetConfig);
+      handleSplashStart(presetConfig, selectedRace);
     }
   }, [handleSplashStart]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -413,6 +427,8 @@ export default function App() {
           width={windowSize.w}
           height={windowSize.h}
           running={running}
+          raceName={race?.name}
+          raceBrief={race?.description}
         />
         {/* Screen flash for wipeout / victory */}
         {ssFlash && (
@@ -519,13 +535,15 @@ export default function App() {
       {isNarrow ? (
         /* --- Mobile / Narrow: single column --- */
         <div className="flex flex-col gap-4 mx-auto" style={{ maxWidth: fullW }}>
-          <ChallengeInfo challenge={0} />
+          <ChallengeInfo raceName={race?.name} raceDescription={race?.description} />
           <SimCanvas
             state={state}
             width={canvasSize}
             height={canvasSize}
             running={running}
             onToggle={handleToggle}
+            raceName={race?.name}
+            raceBrief={race?.description}
           />
           <div className="flex flex-col gap-3" style={{ width: fullW }}>
             {sidebar}
@@ -536,7 +554,7 @@ export default function App() {
         /* --- Desktop: two columns --- */
         <div className="flex gap-5 items-start">
           <div className="flex flex-col gap-4 flex-shrink-0" style={{ width: canvasSize }}>
-            <ChallengeInfo challenge={0} />
+            <ChallengeInfo raceName={race?.name} raceDescription={race?.description} />
             <SimCanvas
               state={state}
               width={canvasSize}

@@ -20,7 +20,10 @@ Forked from [Darwin's Arena](https://github.com/as311-ops/darwin-dots), conceptu
 - **Real-time visualization** — boats as heading-rotated triangles, wind rose overlay, highlighted target zone
 - **Live commentary** — sports-reporter style commentary on the fleet's progress
 - **Genome visualization** — network graph of evolved neural connections
-- **4 presets** — First Regatta (downwind), Upwind Battle (tacking required), Shifting Winds, Storm Lottery
+- **Islands** — sandy obstacles reshuffled every race; boats read a clear-water sensor to evolve avoidance
+- **Multi-leg courses** — round numbered marks in order before crossing the gate; the target sensors always point at the current objective
+- **Pre-start phase** — the fleet jockeys behind the line until the gun; crossing early slashes the score, so start timing evolves
+- **7 presets** — from First Regatta (downwind sprint) to Island Hopping, Triangle Course, and Match Race
 - **Web Worker** — simulation runs in a background thread, UI stays responsive
 
 ## Tech Stack
@@ -58,12 +61,15 @@ The app is a pure client-side SPA with no backend, deployed on Vercel. Every pus
 
 ## The races
 
-| Preset | Wind | Target | What evolves |
+| Preset | Wind | Course | What evolves |
 |--------|------|--------|--------------|
-| First Regatta | fixed N | SE (downwind) | basic steering toward the target |
-| Upwind Battle | fixed N | NE (upwind) | tacking — visible zigzag courses |
-| Shifting Winds | rotates 45°/30 gens | random | wind-relative navigation |
-| Storm Lottery | random per race | random | true generalization |
+| First Regatta | fixed N | sprint to SE (downwind) | basic steering toward the target |
+| Upwind Battle | fixed N | sprint to NE (upwind) | tacking — visible zigzag courses |
+| Shifting Winds | rotates 45°/30 gens | sprint, random target | wind-relative navigation |
+| Storm Lottery | random per race | sprint, random target | true generalization |
+| Island Hopping | rotates 45°/30 gens | sprint, 6 islands reshuffled each race | obstacle avoidance via the clear-water sensor |
+| Triangle Course | fixed N | round mark 1 and 2, then the gate | multi-leg navigation with switching objectives |
+| Match Race | random per race | sprint with 60-tick pre-start | start timing — close to the line, never over it |
 
 ## Origin
 

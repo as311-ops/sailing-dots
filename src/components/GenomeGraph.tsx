@@ -26,8 +26,28 @@ export default function GenomeGraph({ profile, width, height }: GenomeGraphProps
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-1.5 px-1 flex-shrink-0">
-        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">
+        <span className="flex items-center gap-1 text-[10px] text-zinc-500 uppercase tracking-wider">
           Consensus Genome
+          <span className="group/info relative inline-flex">
+            <span className="flex h-3 w-3 cursor-help items-center justify-center rounded-full border border-zinc-600 text-[8px] font-bold normal-case text-zinc-500 hover:border-zinc-400 hover:text-zinc-300">
+              i
+            </span>
+            <span className="pointer-events-none absolute left-0 bottom-5 z-20 hidden w-64 rounded-md border border-zinc-700 bg-zinc-950/95 p-2.5 text-[10px] normal-case leading-relaxed tracking-normal text-zinc-300 shadow-xl group-hover/info:block">
+              <span className="mb-1 block font-semibold text-zinc-100">What the boats learned</span>
+              The shared steering rules of the fastest survivors — the wiring almost every winner agrees on.
+              <span className="mt-1.5 block text-zinc-400">
+                Each row: <span className="text-zinc-200">73%</span> = share of winners with this link;
+                <span className="text-emerald-500"> green →</span> the signal urges the turn,
+                <span className="text-red-500"> red →</span> suppresses it; the bar shows its strength.
+              </span>
+              <span className="mt-1.5 block text-zinc-400">
+                In sailing terms:
+                <span className="block"><span className="text-cyan-400">Wind Angle → Turn</span> = beating upwind (you can't sail into the ±45° no-go zone, so you tack).</span>
+                <span className="block"><span className="text-cyan-400">Internal Clock → Turn</span> = the rhythm for when to tack.</span>
+                <span className="block"><span className="text-cyan-400">Target Bearing → Turn</span> = steering for the mark when the wind allows it.</span>
+              </span>
+            </span>
+          </span>
         </span>
         <span className="text-[10px] text-zinc-600 font-mono">
           {profile.avgGenomeLength}G / {profile.avgNeuronCount}N

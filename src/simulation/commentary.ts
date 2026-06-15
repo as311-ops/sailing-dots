@@ -91,10 +91,20 @@ export function generateCommentary(input: CommentaryInput): CommentaryLine[] {
     }
   }
 
+  // --- Rookie mistakes (early generations or a struggling fleet) ---
+  // Early on the boats sail badly; call out the classic errors so viewers see what
+  // they still have to learn. Derived from the consensus genome + finisher rate.
+  if (generation >= 1 && (generation <= 4 || rate < 0.08)) {
+    const mistake = describeMistakes(generation, rate, genomeProfile?.topConnections ?? []);
+    if (mistake) {
+      lines.push({ text: mistake, type: 'concern', generation });
+    }
+  }
+
   // --- Strategy analysis (human-readable, no technical connection names) ---
   if (genomeProfile && genomeProfile.topConnections.length > 0) {
-    // Describe dominant strategy every generation
-    if (generation > 1) {
+    // Surface the learned sailing rule every few generations (avoid spamming every gen)
+    if (generation > 1 && generation % 5 === 0) {
       const strategy = describeStrategy(genomeProfile.topConnections, rate);
       if (strategy) {
         lines.push({ text: strategy, type: 'analysis', generation });
@@ -355,46 +365,113 @@ function connDesc(c: ConnectionProfile): string {
   return connectionDescription(c.from, c.fromType, c.to, c.toType, c.avgWeight);
 }
 
-function describeStrategy(conns: ConnectionProfile[], survivalRate: number): string | null {
-  const sensorConns = conns.filter(c => c.fromType === 'sensor' && c.frequency > 0.3);
-  const hasMovement = conns.some(c => c.toType === 'action' && c.to.startsWith('MV_'));
+// Maps genome-profile sensor short names to the sailing role they play at the helm.
+const SAILING_SENSE: Record<string, string> = {
+  WIND_X: 'the wind angle',
+  WIND_Y: 'the wind angle',
+  TGT_X: 'the bearing to the mark',
+  TGT_Y: 'the bearing to the mark',
+  TGT_D: 'the distance to the mark',
+  OSC: 'an inner tacking rhythm',
+  BDIST: 'how close they are to shore',
+  OBST: 'the clear water ahead',
+  SPD: 'their own boat speed',
+  AGE: 'the race clock',
+  RND: 'pure gut feeling',
+};
 
-  if (!hasMovement) return null;
+function describeMistakes(generation: number, survivalRate: number, conns: ConnectionProfile[]): string | null {
+  const sensorConns = conns.filter(c => c.fromType === 'sensor' && c.frequency > 0.3);
+  const usesWind = sensorConns.some(c => c.from === 'WIND_X' || c.from === 'WIND_Y');
+  const usesTarget = sensorConns.some(c => c.from === 'TGT_X' || c.from === 'TGT_Y' || c.from === 'TGT_D');
+
+  // The very first generations are pure randomness — nothing learned yet.
+  if (generation <= 2) {
+    return pick([
+      `Total chaos out there! Boats spinning in circles, sailing straight into the wind and stalling, drifting the wrong way — nobody has a clue yet.`,
+      `Look at this mess — half the fleet points dead upwind and parks in irons, the rest wander off downwind. Pure trial and error.`,
+      `Rookie hour: no boat knows where the wind is. They luff, they stall, they circle. This is what evolution looks like before it learns a thing.`,
+    ]);
+  }
+
+  // No wind awareness = the cardinal sin: stalling head-to-wind in the no-go zone.
+  if (!usesWind) {
+    if (usesTarget) {
+      return pick([
+        `Classic blunder: they steer straight at the mark — and when it sits upwind, they sail right into the ±45° no-go zone and stop dead.`,
+        `They want the mark so badly they forget the wind exists. Point too high, lose all speed, park in irons. Painful to watch.`,
+      ]);
+    }
+    return pick([
+      `Still sailing blind — no feel for the wind, so they keep pinching head-to-wind and stalling in the no-go zone.`,
+      `Nobody's tacking yet. They sail in straight lines until they stall into the wind or run out of course. The penny hasn't dropped.`,
+    ]);
+  }
+
+  // They sense the wind but still botch the helm work.
+  if (survivalRate < 0.1) {
+    return pick([
+      `They can feel the wind now, but the helm work is a shambles — tacking too late, overshooting, pinching until they stall.`,
+      `The wind is on their radar, yet they keep oversteering and killing their speed. The instinct is there; the timing is not.`,
+    ]);
+  }
+
+  return null;
+}
+
+function describeStrategy(conns: ConnectionProfile[], survivalRate: number): string | null {
+  // Sailing boats only ever steer (TURN_L / TURN_R); the old MV_ check is a leftover
+  // from the land-based Darwin's Arena fork and would never match here.
+  const hasHelm = conns.some(c => c.toType === 'action');
+  if (!hasHelm) return null;
+
+  const sensorConns = conns.filter(c => c.fromType === 'sensor' && c.frequency > 0.3);
 
   if (sensorConns.length === 0) {
     return pick([
-      `They're just vibing out there — no clear sensory game plan, pure instinct. Bold!`,
-      `Pure chaos on the pitch! No dominant sensors — they're navigating blind and hoping for the best.`,
+      `No feel for the wind yet — they're working the helm on pure instinct and hoping the breeze cooperates.`,
+      `Sailing blind! No dominant sense at the tiller — these boats are guessing their way up the course.`,
     ]);
   }
 
-  // Describe what they sense (this is always accurate, unlike movement direction)
-  const senseNames = [...new Set(sensorConns.slice(0, 3).map(c => humanLabel(c.from, 'sensor')))];
-  const senseStr = senseNames.join(' and ');
-  const senseCount = sensorConns.length;
+  // Unique sailing senses, most frequent first
+  const senses = [...new Set(sensorConns.map(c => SAILING_SENSE[c.from] ?? humanLabel(c.from, 'sensor')))];
+  const usesWind = sensorConns.some(c => c.from === 'WIND_X' || c.from === 'WIND_Y');
+  const usesTarget = sensorConns.some(c => c.from === 'TGT_X' || c.from === 'TGT_Y' || c.from === 'TGT_D');
+  const usesClock = sensorConns.some(c => c.from === 'OSC');
+  const senseStr = senses.slice(0, 3).join(', ');
 
-  if (survivalRate > 0.7) {
+  // The signature sailing rule: steering off the wind angle = the fleet learned to tack.
+  if (usesWind) {
+    if (survivalRate > 0.6) {
+      return pick([
+        `There it is — they're steering off ${senses[0]}! The fleet has learned to tack, zig-zagging upwind instead of stalling head-to-wind.`,
+        `Textbook seamanship! Reading the wind angle and throwing the helm over at the right moment — that's how you beat to windward.`,
+        usesClock
+          ? `Beautiful rhythm out there: wind angle plus an inner clock means clean, regular tacks up the beat.`
+          : `They've cracked it — feel the wind, head up or bear away, and never get caught luffing in the ±45° no-go zone.`,
+      ]);
+    }
     return pick([
-      `WHAT A PLAY! The squad is locked in on "${senseStr}" — reading the field and navigating like pros!`,
-      `This is textbook evolution! "${senseStr}" is their compass and ${pct(survivalRate)} are reaching the goal. The crowd goes wild!`,
-      `They've cracked the code! Sense "${senseStr}", then move with purpose. Championship-level instincts!`,
-      `Unstoppable! ${senseCount} active senses driving the population — "${senseStr}" leading the charge. Pure class!`,
+      `Progress on the beat: the boats are starting to steer off the wind angle — the first real sign of tacking.`,
+      `You can see them feeling for the wind now, trying to point as high as they can without stalling head-to-wind.`,
+      usesClock
+        ? `An inner rhythm is emerging — rough, early tacks up the course. Not pretty, but it is tacking.`
+        : `Early tacking instincts forming: wind angle is on the radar, the helm work just needs polish.`,
     ]);
   }
 
-  if (survivalRate > 0.3) {
+  // Homing on the mark without strong wind awareness — fine off the wind, fatal upwind.
+  if (usesTarget) {
     return pick([
-      `The playbook: read "${senseStr}" and navigate accordingly. Decent formation, getting there!`,
-      `"${senseStr}" is the radar of choice — the squad is finding its rhythm. Not bad, not bad!`,
-      `Coach Evolution has the team tuned into "${senseStr}". Let's see if it pays off!`,
-      `Interesting tactical read! "${senseStr}" as the guiding instinct. ${pct(survivalRate)} making it through.`,
+      `They're locked onto ${senses[0]}, steering straight for the mark — fast on a reach, but the no-go zone punishes the greedy.`,
+      `Pure mark-hunger: the fleet chases the bearing to the goal and ignores the wind. Works downwind, ruinous on a beat.`,
     ]);
   }
 
+  // Some other dominant sense driving the helm.
   return pick([
-    `They're tuning into "${senseStr}" but can't quite translate it into results yet. Needs work!`,
-    `The senses are there — "${senseStr}" — but the execution is shaky. Back to the training ground!`,
-    `"${senseStr}" is on the radar, but these boats need more reps to figure it out!`,
-    `Reading "${senseStr}"... on paper it's a plan, on the field it's chaos. Classic early-season form!`,
+    `The helm is being driven by ${senseStr}. Unconventional seamanship, but evolution doesn't read the rulebook.`,
+    `Steering mainly off ${senseStr} — not the textbook approach to a beat, but let's see if it floats.`,
   ]);
 }

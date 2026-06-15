@@ -93,6 +93,7 @@ function sendState(): void {
     state.agentLocations.buffer,
     state.agentColors.buffer,
     state.agentHeadings.buffer,
+    state.agentFinished.buffer,
     state.barrierLocations.buffer,
   ]);
 }

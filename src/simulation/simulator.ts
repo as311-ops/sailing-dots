@@ -61,7 +61,8 @@ export interface SimState {
   survivors: number;
   agentLocations: Float32Array;
   agentColors: Uint8Array;
-  agentHeadings: Uint8Array; // Compass-Werte (0..8) pro lebendem Agent
+  agentHeadings: Uint8Array;  // Compass-Werte (0..8) pro lebendem Agent
+  agentFinished: Uint8Array;  // 1 = hat die Ziellinie überquert, sonst 0
   barrierLocations: Uint16Array;
   windFrom: number;          // Compass-Wert der Windquelle
   targetQuadrant: number;    // 0..3
@@ -189,9 +190,10 @@ export class Simulator {
       if (this.peeps.getIndiv(i).alive) aliveCount++;
     }
 
-    // Agent locations + headings
+    // Agent locations + headings + finish flag
     const agentLocations = new Float32Array(aliveCount * 2);
     const agentHeadings = new Uint8Array(aliveCount);
+    const agentFinished = new Uint8Array(aliveCount);
     let idx = 0;
 
     for (let i = 1; i <= this.peeps.population; i++) {
@@ -200,6 +202,7 @@ export class Simulator {
       agentLocations[idx * 2] = indiv.loc.x;
       agentLocations[idx * 2 + 1] = indiv.loc.y;
       agentHeadings[idx] = indiv.heading.asInt();
+      agentFinished[idx] = (indiv.challengeBits & REGATTA_FINISHED_BIT) !== 0 ? 1 : 0;
       idx++;
     }
 
@@ -244,6 +247,7 @@ export class Simulator {
       agentLocations,
       agentColors,
       agentHeadings,
+      agentFinished,
       barrierLocations,
       windFrom: sailingEnv.windFrom as number,
       targetQuadrant: sailingEnv.targetQuadrant,

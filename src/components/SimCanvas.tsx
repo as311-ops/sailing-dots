@@ -10,6 +10,7 @@ export interface SimState {
   agentLocations: Float32Array;
   agentColors: Uint8Array;
   agentHeadings: Uint8Array;
+  agentFinished: Uint8Array;
   barrierLocations: Uint16Array;
   windFrom: number;
   targetQuadrant: number;
@@ -92,7 +93,7 @@ export default function SimCanvas({
         return;
       }
 
-      const { gridSize, agentLocations, agentColors, agentHeadings, barrierLocations, windFrom, targetQuadrant, courseLegs, preStartTicks } = state;
+      const { gridSize, agentLocations, agentColors, agentHeadings, agentFinished, barrierLocations, windFrom, targetQuadrant, courseLegs, preStartTicks } = state;
       const inPreStart = state.simStep < preStartTicks;
       const cellW = width / gridSize.x;
       const cellH = height / gridSize.y;
@@ -179,7 +180,11 @@ export default function SimCanvas({
         visibleCount = Math.floor(totalAgents * eased);
       }
 
+      // Erster Durchgang: noch nicht gefinishte Boote in Genom-Farbe;
+      // Finisher werden vorgemerkt und danach golden obendrauf gezeichnet.
+      const finishers: number[] = [];
       for (let i = 0; i < visibleCount; i++) {
+        if (agentFinished[i]) { finishers.push(i); continue; }
         const ax = agentLocations[i * 2];
         const ay = agentLocations[i * 2 + 1];
         const ci = i * 3;
@@ -201,6 +206,33 @@ export default function SimCanvas({
         ctx.closePath();
         ctx.fill();
         ctx.restore();
+      }
+
+      // Zweiter Durchgang: Sieger, die die Ziellinie überquert haben — golden,
+      // größer und mit heller Umrandung, damit sie aus der Flotte herausstechen.
+      if (finishers.length > 0) {
+        const winRadius = boatRadius * 1.55;
+        ctx.strokeStyle = "rgba(255, 251, 235, 0.95)";
+        ctx.lineWidth = Math.max(cellW * 0.14, 0.8);
+        for (const i of finishers) {
+          const ax = agentLocations[i * 2];
+          const ay = agentLocations[i * 2 + 1];
+          const [hx, hy] = COMPASS_XY[agentHeadings[i] ?? 7];
+          const angle = Math.atan2(-hy, hx);
+
+          ctx.save();
+          ctx.translate(ax * cellW + cellW / 2, screenY(ay) + cellH / 2);
+          ctx.rotate(angle);
+          ctx.fillStyle = "#facc15"; // gold
+          ctx.beginPath();
+          ctx.moveTo(winRadius, 0);
+          ctx.lineTo(-winRadius * 0.7, winRadius * 0.6);
+          ctx.lineTo(-winRadius * 0.7, -winRadius * 0.6);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
       }
 
       // Wind-Anzeige (oben rechts): Pfeil zeigt, WOHIN der Wind weht

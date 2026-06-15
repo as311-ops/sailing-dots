@@ -304,7 +304,13 @@ export default function SimCanvas({
       }
 
       // Boote — spawn animation: gradually reveal over 2s with ease-in curve
-      const boatRadius = Math.max(cellW * 0.45, 2.0);
+      const cellMin = Math.min(cellW, cellH);
+      const boatRadius = Math.max(cellMin * 0.62, 2.2);
+      // Effekt-Stufen nach Zoom (Zellgröße), nicht nach geklammertem Radius:
+      // Schaum/Schatten ab mittlerer Größe, Kielwasser erst bei wenigen/großen
+      // Booten (sonst überlagern sich tausende Stempel zu einem hellen Blob).
+      const showFoam = cellMin >= 4;
+      const showWake = cellMin >= 7;
       const spawnElapsed = performance.now() - spawnStartRef.current;
       const spawnDuration = 2000;
       const totalAgents = agentLocations.length / 2;
@@ -319,8 +325,6 @@ export default function SimCanvas({
 
       // Erster Durchgang: noch nicht gefinishte Boote in Genom-Farbe;
       // Finisher werden vorgemerkt und danach golden obendrauf gezeichnet.
-      // Schatten + Bug-Schaum nur bei größeren Booten (skaliert mit der Flottengröße).
-      const detail = boatRadius >= 3;
       const finishers: number[] = [];
       for (let i = 0; i < visibleCount; i++) {
         if (agentFinished[i]) { finishers.push(i); continue; }
@@ -339,7 +343,7 @@ export default function SimCanvas({
         // Kielwasser am Heck in die Wake-Ebene stempeln (erscheint im nächsten Frame).
         // Nur bei größeren Booten/kleineren Flotten — sonst überlagern sich tausende
         // Stempel zu einem hellen Blob statt lesbarer Spuren.
-        if (wctx && detail) {
+        if (wctx && showWake) {
           const shl = Math.hypot(hx, hy) || 1;
           wctx.fillStyle = "rgba(190, 225, 255, 0.42)";
           wctx.beginPath();
@@ -349,7 +353,7 @@ export default function SimCanvas({
 
         ctx.save();
         ctx.translate(cxp, cyp);
-        if (detail) {
+        if (showFoam) {
           // Wasserschatten
           ctx.fillStyle = "rgba(2, 6, 23, 0.28)";
           ctx.beginPath();
@@ -364,13 +368,13 @@ export default function SimCanvas({
         ctx.lineTo(-boatRadius * 0.7, -boatRadius * 0.6);
         ctx.closePath();
         ctx.fill();
-        if (detail) {
+        if (showFoam) {
           // Bug-Schaum — Intensität an die Polartabellen-Geschwindigkeit gekoppelt
           const spd = pointOfSailSpeed(agentHeadings[i] ?? 7, windFrom);
-          if (spd > 0.55) {
-            ctx.fillStyle = `rgba(235, 248, 255, ${0.55 * spd})`;
+          if (spd > 0.5) {
+            ctx.fillStyle = `rgba(235, 248, 255, ${0.85 * spd})`;
             ctx.beginPath();
-            ctx.arc(boatRadius * 1.15, 0, boatRadius * 0.32, 0, Math.PI * 2);
+            ctx.ellipse(boatRadius * 1.05, 0, boatRadius * 0.55, boatRadius * 0.4, 0, 0, Math.PI * 2);
             ctx.fill();
           }
         }

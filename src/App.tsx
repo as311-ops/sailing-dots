@@ -221,8 +221,8 @@ export default function App() {
   const isNarrow = windowWidth < 900;
   const sidebarW = isNarrow ? Math.min(windowWidth - 32, 400) : 300;
   const canvasSize = isNarrow
-    ? Math.min(windowWidth - 32, 500)
-    : Math.min(windowWidth - sidebarW - 64, 640);
+    ? Math.min(windowWidth - 32, 560)
+    : Math.min(windowWidth - sidebarW - 64, 880);
   const fullW = isNarrow ? Math.min(windowWidth - 32, 500) : canvasSize;
 
   // Generate commentary when new generation stats arrive

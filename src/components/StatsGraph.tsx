@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 
 import type { GenomeProfile } from "../simulation/genome-profile";
-import type { ChampionSnapshot } from "../simulation/lineage";
+import type { Genome } from "../simulation/types";
 
 export interface GenerationStats {
   generation: number;
@@ -12,7 +12,7 @@ export interface GenerationStats {
   avgNeuronCount: number;
   avgGenomeLength: number;
   genomeProfile: GenomeProfile | null;
-  championSnapshot?: ChampionSnapshot | null;
+  championGenome?: Genome | null;
 }
 
 interface StatsGraphProps {

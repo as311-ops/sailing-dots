@@ -4,7 +4,6 @@ import type { SimConfig } from "../components/ControlPanel";
 import type { GenerationStats } from "../components/StatsGraph";
 import type { AgentInfo } from "../simulation/simulator";
 import type { GenomeProfile } from "../simulation/genome-profile";
-import type { ChampionSnapshot } from "../simulation/lineage";
 import type { Genome } from "../simulation/types";
 
 export type WorkerCommand =
@@ -39,7 +38,7 @@ export function useSimulation(initialConfig: SimConfig, seedGenome?: Genome | nu
   const [agentInfo, setAgentInfo] = useState<AgentInfo | null>(null);
   const [genomeProfile, setGenomeProfile] = useState<GenomeProfile | null>(null);
   const [firstProfile, setFirstProfile] = useState<GenomeProfile | null>(null);
-  const [lineage, setLineage] = useState<ChampionSnapshot[]>([]);
+  const [championGenome, setChampionGenome] = useState<Genome | null>(null);
   const [perfStats, setPerfStats] = useState<PerfStats | null>(null);
 
   useEffect(() => {
@@ -71,9 +70,8 @@ export function useSimulation(initialConfig: SimConfig, seedGenome?: Genome | nu
             setGenomeProfile(gp);
             setFirstProfile((prev) => prev ?? gp);
           }
-          const cs = msg.stats.championSnapshot;
-          if (cs) {
-            setLineage((prev) => [...prev, cs]);
+          if (msg.stats.championGenome) {
+            setChampionGenome(msg.stats.championGenome);
           }
           break;
         }
@@ -116,7 +114,7 @@ export function useSimulation(initialConfig: SimConfig, seedGenome?: Genome | nu
     setAgentInfo(null);
     setGenomeProfile(null);
     setFirstProfile(null);
-    setLineage([]);
+    setChampionGenome(null);
     setPerfStats(null);
   }, []);
 
@@ -134,7 +132,7 @@ export function useSimulation(initialConfig: SimConfig, seedGenome?: Genome | nu
   }, []);
 
   return {
-    state, running, speed, history, agentInfo, genomeProfile, firstProfile, lineage, perfStats,
+    state, running, speed, history, agentInfo, genomeProfile, firstProfile, championGenome, perfStats,
     start, pause, reset, changeSpeed, updateConfig, inspectAgent,
   };
 }

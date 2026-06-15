@@ -8,7 +8,6 @@ import StatsGraph from "./components/StatsGraph";
 import GenomeGraph from "./components/GenomeGraph";
 import MatchSummaryModal from "./components/MatchSummary";
 import ChallengeInfo from "./components/ChallengeInfo";
-import LineageTree from "./components/LineageTree";
 import SplashScreen from "./components/SplashScreen";
 import TutorialWizard from "./components/TutorialWizard";
 import DarwinLogo from "./components/DarwinLogo";
@@ -153,16 +152,12 @@ export default function App() {
     : DEFAULT_CONFIG;
 
   const {
-    state, running, history, genomeProfile, lineage, perfStats, speed,
+    state, running, history, genomeProfile, championGenome, perfStats, speed,
     start, pause, reset, changeSpeed, updateConfig,
   } = useSimulation(screensaverInitConfig, seedGenome);
 
   const windowWidth = useWindowWidth();
   const windowSize = useWindowSize();
-
-  // Champion genome from last lineage entry
-  const championGenome: Genome | null =
-    lineage.length > 0 ? lineage[lineage.length - 1].genome : null;
 
   const handleShareGenome = useCallback(() => {
     if (!championGenome) return;
@@ -383,7 +378,6 @@ export default function App() {
         onShareGenome={handleShareGenome}
         genomeProfile={genomeProfile}
       />
-      {lineage.length > 0 && <LineageTree snapshots={lineage} />}
     </>
   );
 

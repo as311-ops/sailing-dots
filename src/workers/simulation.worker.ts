@@ -2,7 +2,6 @@
 
 import { Simulator, type SimState, type AgentInfo } from '../simulation/simulator';
 import type { GenomeProfile } from '../simulation/genome-profile';
-import type { ChampionSnapshot } from '../simulation/lineage';
 import type { Genome } from '../simulation/types';
 
 interface SimConfig {
@@ -37,7 +36,7 @@ type WorkerCommand =
 
 type WorkerMessage =
   | { type: 'state'; state: SimState }
-  | { type: 'generation'; stats: { generation: number; survivors: number; population: number; diversity: number; avgFitness: number; finisherRate: number; avgArrivalTick: number; genomeProfile: GenomeProfile | null; championSnapshot: ChampionSnapshot | null } }
+  | { type: 'generation'; stats: { generation: number; survivors: number; population: number; diversity: number; avgFitness: number; finisherRate: number; avgArrivalTick: number; genomeProfile: GenomeProfile | null; championGenome: Genome | null } }
   | { type: 'agentInfo'; info: AgentInfo | null }
   | { type: 'perf'; stats: { stepsPerSecond: number; generationsPerSecond: number; stateUpdatesPerSecond: number; avgBurstSteps: number } }
   | { type: 'ready' };
@@ -98,7 +97,7 @@ function sendState(): void {
   ]);
 }
 
-function sendGeneration(result: { survivors: number; diversity: number; avgFitness: number; finisherRate: number; avgArrivalTick: number; genomeProfile: GenomeProfile | null; championSnapshot: ChampionSnapshot | null }): void {
+function sendGeneration(result: { survivors: number; diversity: number; avgFitness: number; finisherRate: number; avgArrivalTick: number; genomeProfile: GenomeProfile | null; championGenome: Genome | null }): void {
   if (!simulator) return;
   post({
     type: 'generation',
@@ -111,7 +110,7 @@ function sendGeneration(result: { survivors: number; diversity: number; avgFitne
       finisherRate: result.finisherRate,
       avgArrivalTick: result.avgArrivalTick,
       genomeProfile: result.genomeProfile,
-      championSnapshot: result.championSnapshot,
+      championGenome: result.championGenome,
     },
   });
 }

@@ -10,7 +10,6 @@ import { makeRandomGenome, generateChildGenome, genomeSimilarity } from './genom
 import { createWiringFromGenome } from './neural-net';
 import { passedSurvivalCriterion } from './survival';
 import { computeGenomeProfile, type GenomeProfile } from './genome-profile';
-import { createChampionSnapshot, type ChampionSnapshot } from './lineage';
 import {
   sailingEnv,
   advanceSailingGeneration,
@@ -30,7 +29,7 @@ export interface GenerationResult {
   finisherRate: number;     // Finisher / Population
   avgArrivalTick: number;   // Ø Ankunfts-Tick der Finisher, -1 wenn keine
   genomeProfile: GenomeProfile | null;
-  championSnapshot: ChampionSnapshot | null;
+  championGenome: Genome | null;
 }
 
 /**
@@ -169,11 +168,9 @@ export function spawnNewGeneration(
     candidates.sort((a, b) => b.score - a.score);
   }
 
-  // Create champion snapshot from best survivor
+  // Champion-Genom des besten Survivors (für Genome-Sharing)
   const bestCandidate = candidates[0];
-  const championSnapshot = bestCandidate
-    ? createChampionSnapshot(bestCandidate.genome, bestCandidate.score, generation, params.maxNumberNeurons)
-    : null;
+  const championGenome = bestCandidate ? bestCandidate.genome.slice() : null;
 
   for (const c of candidates) {
     parentGenomes.push(c.genome);
@@ -202,7 +199,7 @@ export function spawnNewGeneration(
   // If no survivors, create random genomes
   if (parentGenomes.length === 0) {
     initializeGeneration0(peeps, grid, signals, params);
-    return { survivors: 0, generation, diversity: 1.0, avgFitness: 0, finisherRate: 0, avgArrivalTick: -1, genomeProfile: null, championSnapshot: null };
+    return { survivors: 0, generation, diversity: 1.0, avgFitness: 0, finisherRate: 0, avgArrivalTick: -1, genomeProfile: null, championGenome: null };
   }
 
   // Compute consensus genome profile from survivors
@@ -216,7 +213,7 @@ export function spawnNewGeneration(
   // Generate new population from survivors
   initializeNewGeneration(parentGenomes, peeps, grid, signals, params);
 
-  return { survivors: survivorCount, generation, diversity, avgFitness, finisherRate, avgArrivalTick, genomeProfile, championSnapshot };
+  return { survivors: survivorCount, generation, diversity, avgFitness, finisherRate, avgArrivalTick, genomeProfile, championGenome };
 }
 
 /**

@@ -406,12 +406,16 @@ export default function App() {
 
   if (IS_SCREENSAVER) {
     const presetName = PRESETS[screensaverPresetIdx.current]?.name ?? "";
+    // Das Spielfeld ist quadratisch (160×160). Auf einem 16:9-Bildschirm muss
+    // das Canvas quadratisch und zentriert bleiben, sonst werden die Boote
+    // horizontal gestreckt (cellW ≠ cellH). Ränder in tiefem Meerblau.
+    const ssSize = Math.min(windowSize.w, windowSize.h);
     return (
-      <div className="fixed inset-0 bg-zinc-950 overflow-hidden">
+      <div className="fixed inset-0 overflow-hidden flex items-center justify-center" style={{ backgroundColor: '#072134' }}>
         <SimCanvas
           state={state}
-          width={windowSize.w}
-          height={windowSize.h}
+          width={ssSize}
+          height={ssSize}
           running={running}
           raceName={race?.name}
           raceBrief={race?.description}

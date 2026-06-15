@@ -208,11 +208,12 @@ export default function SimCanvas({
         ctx.restore();
       }
 
-      // Zweiter Durchgang: Sieger, die die Ziellinie überquert haben — golden,
-      // größer und mit heller Umrandung, damit sie aus der Flotte herausstechen.
+      // Zweiter Durchgang: Sieger, die die Ziellinie überquert haben — satt
+      // golden, größer und mit dunkelgoldener Umrandung für den Metallic-Look,
+      // damit sie aus der Flotte herausstechen.
       if (finishers.length > 0) {
         const winRadius = boatRadius * 1.55;
-        ctx.strokeStyle = "rgba(255, 251, 235, 0.95)";
+        ctx.strokeStyle = "#7a5c00"; // dunkles Gold als Kontur
         ctx.lineWidth = Math.max(cellW * 0.14, 0.8);
         for (const i of finishers) {
           const ax = agentLocations[i * 2];
@@ -223,7 +224,7 @@ export default function SimCanvas({
           ctx.save();
           ctx.translate(ax * cellW + cellW / 2, screenY(ay) + cellH / 2);
           ctx.rotate(angle);
-          ctx.fillStyle = "#facc15"; // gold
+          ctx.fillStyle = "#ffbf00"; // sattes Amber-Gold
           ctx.beginPath();
           ctx.moveTo(winRadius, 0);
           ctx.lineTo(-winRadius * 0.7, winRadius * 0.6);

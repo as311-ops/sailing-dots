@@ -405,7 +405,7 @@ export enum Sensor {
   OSC1,
   AGE,
   RANDOM,
-  OBSTACLE_FWD,    // freie Strecke voraus (Inseln/Rand), 1.0 = frei
+  OBSTACLE_FWD,    // freie Strecke voraus (Inseln/Rand/andere Boote), 1.0 = frei
   NUM_SENSES,
 }
 

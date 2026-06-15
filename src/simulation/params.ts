@@ -91,7 +91,7 @@ export interface SimParams {
 export const DEFAULT_PARAMS: SimParams = {
   sizeX: 160,
   sizeY: 160,
-  population: 600,
+  population: 300,
   stepsPerGeneration: 450,
   maxGenerations: 200000,
 

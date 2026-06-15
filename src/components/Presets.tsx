@@ -16,7 +16,7 @@ export const PRESETS: Preset[] = [
       windMode: 'fixed',
       windDirection: 7, // N
       targetQuadrant: 1, // SE — in Lee, einfach ablaufen
-      population: 600,
+      population: 300,
       stepsPerGeneration: 450,
       maxGenerations: 200,
     },
@@ -28,7 +28,7 @@ export const PRESETS: Preset[] = [
       windMode: 'fixed',
       windDirection: 7, // N
       targetQuadrant: 3, // NE — in Luv, Kreuzen nötig
-      population: 600,
+      population: 300,
       stepsPerGeneration: 750,
       maxGenerations: 500,
     },
@@ -41,7 +41,7 @@ export const PRESETS: Preset[] = [
       windDirection: 7,
       windRotatePeriod: 30,
       targetQuadrant: -1,
-      population: 600,
+      population: 300,
       stepsPerGeneration: 600,
       maxGenerations: 500,
     },
@@ -52,7 +52,7 @@ export const PRESETS: Preset[] = [
     config: {
       windMode: 'random',
       targetQuadrant: -1,
-      population: 900,
+      population: 300,
       stepsPerGeneration: 600,
       maxGenerations: 1000,
       genomeInitialLength: 32,
@@ -68,7 +68,7 @@ export const PRESETS: Preset[] = [
       windRotatePeriod: 30,
       targetQuadrant: -1,
       islands: 6,
-      population: 600,
+      population: 300,
       stepsPerGeneration: 750,
       maxGenerations: 500,
       genomeInitialLength: 32,
@@ -83,7 +83,7 @@ export const PRESETS: Preset[] = [
       windDirection: 7,
       targetQuadrant: -1,
       courseLegs: 3,
-      population: 600,
+      population: 300,
       stepsPerGeneration: 1100,
       maxGenerations: 1000,
       genomeInitialLength: 40,
@@ -97,7 +97,7 @@ export const PRESETS: Preset[] = [
       windMode: 'random',
       targetQuadrant: -1,
       preStartTicks: 60,
-      population: 600,
+      population: 300,
       stepsPerGeneration: 750,
       maxGenerations: 800,
       genomeInitialLength: 32,

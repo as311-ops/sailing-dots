@@ -33,7 +33,7 @@ export interface SimConfig {
 export const DEFAULT_CONFIG: SimConfig = {
   sizeX: 160,
   sizeY: 160,
-  population: 600,
+  population: 300,
   stepsPerGeneration: 600,
   maxGenerations: 500,
   genomeInitialLength: 24,
@@ -417,9 +417,9 @@ export default function ControlPanel({
             <Slider
               label="Population"
               value={config.population}
-              min={100}
-              max={5000}
-              step={100}
+              min={50}
+              max={300}
+              step={50}
               onChange={(v) => update("population", v)}
               disabled={running}
             />

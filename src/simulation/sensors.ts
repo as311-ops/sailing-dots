@@ -70,6 +70,8 @@ export function getSensor(
     }
 
     case Sensor.OBSTACLE_FWD: {
+      // Freie Strecke voraus: der Strahl stoppt am Rand, an Inseln (Barrieren)
+      // UND an anderen Booten — so erkennen Segler andere Boote als Hindernis.
       const nc = indiv.heading.asNormalizedCoord();
       let free = 0;
       let cx = indiv.loc.x;
@@ -79,7 +81,7 @@ export function getSensor(
         cy += nc.y;
         _probe.x = cx;
         _probe.y = cy;
-        if (!grid.isInBounds(_probe) || grid.isBarrierAt(_probe)) break;
+        if (!grid.isInBounds(_probe) || grid.isBarrierAt(_probe) || grid.isOccupiedAt(_probe)) break;
         free++;
       }
       sensorVal = free / OBSTACLE_PROBE_DIST;

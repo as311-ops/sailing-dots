@@ -139,7 +139,6 @@ export default function App() {
     return genome;
   });
   const [showSplash, setShowSplash] = useState(!seedGenome && !IS_SCREENSAVER);
-  const wasRunning = useRef(false);
   const prevProfileRef = useRef<import("./simulation/genome-profile").GenomeProfile | null>(null);
   const screensaverPresetIdx = useRef(SCREENSAVER_INITIAL_IDX);
   type SsBanner = { survivors: number; population: number; streak: number; sparkData?: number[] };
@@ -264,23 +263,10 @@ export default function App() {
     prevProfileRef.current = genomeProfile;
   }, [lastGeneration]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (wasRunning.current && !running && history.length >= 3) {
-      const historyForSummary = history.map((h, i) =>
-        i === history.length - 1 ? { ...h, genomeProfile: genomeProfile } : h
-      );
-      const s = generateSummary({
-        challengeName: race?.name ?? CHALLENGE_LABEL,
-        population: config.population,
-        totalGenerations: history.length,
-        history: historyForSummary,
-      });
-      setSummary(s);
-      setSummaryProfile(genomeProfile);
-      setSummaryGenome(championGenome);
-    }
-    wasRunning.current = running;
-  }, [running]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Hinweis: Das Match-Summary-Modal wird ausschließlich beim expliziten Stop
+  // (handleReset) geöffnet. Ein früherer useEffect öffnete es bei JEDEM Übergang
+  // running→false und damit auch bei einer simplen Pause (Canvas-Klick oder
+  // Pause-Button) — das war unerwünscht und wurde entfernt.
 
   const handleConfigChange = useCallback(
     (newConfig: SimConfig) => {

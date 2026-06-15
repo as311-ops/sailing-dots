@@ -103,7 +103,8 @@ export interface FinishGate {
 
 export function finishGate(q: number, sizeX: number, sizeY: number): FinishGate {
   const c = quadrantCenter(q, sizeX, sizeY);
-  const half = Math.floor(Math.max(8, Math.floor(sizeX / 8)) / 2);
+  const width = Math.max(16, Math.floor(sizeX / 4));
+  const half = Math.floor(width / 2);
   return {
     y: c.y,
     x0: Math.max(1, c.x - half),

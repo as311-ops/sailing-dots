@@ -122,19 +122,19 @@ describe('advanceSailingGeneration', () => {
 });
 
 describe('finish gate', () => {
-  it('places a 16-cell gate centered on the quadrant center (128 grid)', () => {
+  it('places a 32-cell gate centered on the quadrant center (128 grid)', () => {
     const g = finishGate(3, 128, 128); // NE-Zentrum (96, 96)
     expect(g.y).toBe(96);
-    expect(g.x0).toBe(88);
-    expect(g.x1).toBe(103);
-    expect(g.x1 - g.x0 + 1).toBe(16);
+    expect(g.x0).toBe(80);
+    expect(g.x1).toBe(111);
+    expect(g.x1 - g.x0 + 1).toBe(32);
   });
   it('detects boats on the gate but not at the buoys or beside the line', () => {
     const g = finishGate(3, 128, 128);
-    expect(isOnFinishGate(88, 96, g)).toBe(true);
-    expect(isOnFinishGate(103, 96, g)).toBe(true);
-    expect(isOnFinishGate(87, 96, g)).toBe(false);  // Boje
-    expect(isOnFinishGate(104, 96, g)).toBe(false); // Boje
+    expect(isOnFinishGate(80, 96, g)).toBe(true);
+    expect(isOnFinishGate(111, 96, g)).toBe(true);
+    expect(isOnFinishGate(79, 96, g)).toBe(false);  // Boje
+    expect(isOnFinishGate(112, 96, g)).toBe(false); // Boje
     expect(isOnFinishGate(96, 95, g)).toBe(false);  // eine Reihe daneben
   });
 });

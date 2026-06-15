@@ -89,10 +89,10 @@ export interface SimParams {
  * Default parameters matching biosim4's ParamManager::setDefaults().
  */
 export const DEFAULT_PARAMS: SimParams = {
-  sizeX: 128,
-  sizeY: 128,
-  population: 1000,
-  stepsPerGeneration: 300,
+  sizeX: 160,
+  sizeY: 160,
+  population: 600,
+  stepsPerGeneration: 450,
   maxGenerations: 200000,
 
   genomeInitialLengthMin: 24,

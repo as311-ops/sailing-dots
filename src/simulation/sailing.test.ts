@@ -145,22 +145,29 @@ describe('start box', () => {
     expect(box.centerX).toBe(32);
     expect(box.dir).toBe(1);           // Gate liegt nördlich
     expect(box.startLineY).toBe(35);
-    expect(box.width).toBe(42);
+    expect(box.cols).toBe(25);         // floor(128/5)
   });
-  it('fills rows behind the start line', () => {
+  it('fills rows in a checkerboard behind the start line', () => {
     const box = startBox(3, 128, 128);
     const first = startSlot(0, box, 128, 128);
     expect(first.y).toBe(34); // direkt hinter der Linie bei y=35
-    expect(first.x).toBe(11);
-    const secondRow = startSlot(box.width, box, 128, 128);
+    expect(first.x).toBe(7);  // centerX - cols + 0
+    const secondRow = startSlot(box.cols, box, 128, 128);
     expect(secondRow.y).toBe(33); // eine Reihe weiter hinten
-    expect(secondRow.x).toBe(11);
+    expect(secondRow.x).toBe(8);  // Schachbrett: pro Reihe um 1 versetzt
   });
   it('points away from the gate when the target is in the south', () => {
     const box = startBox(0, 128, 128); // Ziel SW → Start NE
     expect(box.dir).toBe(-1);
     const first = startSlot(0, box, 128, 128);
     expect(first.y).toBe(box.startLineY + 1);
+  });
+  it('leaves a gap between neighbouring boats so each can sail off immediately', () => {
+    const box = startBox(3, 128, 128);
+    const a = startSlot(0, box, 128, 128);
+    const b = startSlot(1, box, 128, 128); // nächste Spalte, selbe Reihe
+    expect(b.y).toBe(a.y);
+    expect(b.x - a.x).toBe(2); // eine freie Zelle dazwischen (~50% Dichte)
   });
 });
 

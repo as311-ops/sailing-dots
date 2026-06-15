@@ -17,7 +17,7 @@ export function getChallengeOverlay(
 ): OverlayShape[] {
   const gate = finishGate(targetQuadrant, sizeX, sizeY);
   const box = startBox(targetQuadrant, sizeX, sizeY);
-  const halfW = Math.floor(box.width / 2);
+  const halfW = box.cols; // physische Halbbreite der Schachbrett-Aufstellung
   const marks = courseMarks(targetQuadrant, courseLegs, sizeX, sizeY);
   const r = markRadius(sizeX);
 

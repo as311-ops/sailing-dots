@@ -125,7 +125,7 @@ export interface StartBox {
   centerX: number;
   startLineY: number; // Linie liegt gate-seitig VOR der ersten Bootsreihe
   dir: 1 | -1;        // y-Richtung von der Box zum Gate
-  width: number;      // Boote pro Reihe
+  cols: number;       // besetzte Zellen pro Reihe (physische Breite = 2 * cols)
 }
 
 export function startBox(q: number, sizeX: number, sizeY: number): StartBox {
@@ -136,20 +136,26 @@ export function startBox(q: number, sizeX: number, sizeY: number): StartBox {
     centerX: s.x,
     startLineY: s.y + dir * 3,
     dir,
-    width: Math.floor(sizeX / 3),
+    cols: Math.max(8, Math.floor(sizeX / 5)),
   };
 }
 
-/** Grid-Position des i-ten Boots in der Startaufstellung (Reihen hinter der Linie). */
+/**
+ * Grid-Position des i-ten Boots in der Startaufstellung. Die Boote stehen in
+ * einem Schachbrettmuster (jede zweite Spalte, pro Reihe um 1 versetzt), damit
+ * jedes Boot freie Nachbarzellen hat und sofort lossegeln kann — kein dichter
+ * Pulk, der sich erst über viele Ticks entwirren muss.
+ */
 export function startSlot(
   i: number,
   box: StartBox,
   sizeX: number,
   sizeY: number,
 ): { x: number; y: number } {
-  const row = Math.floor(i / box.width);
-  const col = i % box.width;
-  const x = Math.min(sizeX - 1, Math.max(0, box.centerX - Math.floor(box.width / 2) + col));
+  const row = Math.floor(i / box.cols);
+  const col = i % box.cols;
+  const px = col * 2 + (row & 1); // Schachbrett-Versatz
+  const x = Math.min(sizeX - 1, Math.max(0, box.centerX - box.cols + px));
   const y = Math.min(sizeY - 1, Math.max(0, box.startLineY - box.dir * (1 + row)));
   return { x, y };
 }

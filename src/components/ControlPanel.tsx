@@ -31,10 +31,10 @@ export interface SimConfig {
 }
 
 export const DEFAULT_CONFIG: SimConfig = {
-  sizeX: 128,
-  sizeY: 128,
-  population: 1000,
-  stepsPerGeneration: 1000,
+  sizeX: 160,
+  sizeY: 160,
+  population: 600,
+  stepsPerGeneration: 600,
   maxGenerations: 500,
   genomeInitialLength: 24,
   maxNumberNeurons: 5,

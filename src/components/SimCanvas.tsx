@@ -290,6 +290,61 @@ export default function SimCanvas({
       ctx.fillText("W", 4, height / 2 + 4);
       ctx.textAlign = "right";
       ctx.fillText("E", width - 4, height / 2 + 4);
+
+      // Gewinner-Counter (oben links): wie viele Boote in dieser Episode
+      // bereits die Ziellinie überquert haben.
+      {
+        let finishedCount = 0;
+        for (let i = 0; i < agentFinished.length; i++) finishedCount += agentFinished[i];
+        const total = agentFinished.length;
+
+        const numText = String(finishedCount);
+        const bx = 10, by = 10, boxH = 26, triW = 14, gap = 6, padX = 9;
+        ctx.font = "bold 15px ui-monospace, monospace";
+        const numW = ctx.measureText(numText).width;
+        ctx.font = "9px ui-sans-serif, system-ui, sans-serif";
+        const labelText = `/ ${total} FINISHED`;
+        const labelW = ctx.measureText(labelText).width;
+        const boxW = padX + triW + gap + numW + gap + labelW + padX;
+
+        ctx.fillStyle = "rgba(2, 6, 23, 0.78)";
+        ctx.strokeStyle = "rgba(255, 191, 0, 0.45)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, boxW, boxH, 5);
+        ctx.fill();
+        ctx.stroke();
+
+        const midY = by + boxH / 2;
+
+        // Goldenes Sieger-Dreieck als Icon (zeigt nach rechts)
+        const ix = bx + padX + triW / 2;
+        ctx.save();
+        ctx.translate(ix, midY);
+        ctx.fillStyle = "#ffbf00";
+        ctx.strokeStyle = "#7a5c00";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(6, 0);
+        ctx.lineTo(-4, 3.5);
+        ctx.lineTo(-4, -3.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        const numX = bx + padX + triW + gap;
+        ctx.font = "bold 15px ui-monospace, monospace";
+        ctx.fillStyle = "#ffbf00";
+        ctx.fillText(numText, numX, midY + 0.5);
+
+        ctx.font = "9px ui-sans-serif, system-ui, sans-serif";
+        ctx.fillStyle = "rgba(253, 224, 130, 0.65)";
+        ctx.fillText(labelText, numX + numW + gap, midY + 0.5);
+        ctx.textBaseline = "alphabetic";
+      }
     },
     [state, width, height]
   );

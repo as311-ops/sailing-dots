@@ -1,0 +1,5 @@
+course,difficulty,reproduction,convFinish,convFinishMin,convFinishMax,finalDiversity
+beam,easy,sexual,0.5383,0.4825,0.5388,0.6448
+beam,easy,clone,0.8908,0.6571,0.9321,0.0011
+beat,hard,sexual,0.1650,0.1575,0.1779,0.5378
+beat,hard,clone,0.2250,0.2025,0.2358,0.4106

@@ -1,0 +1,9 @@
+testWind,polarIndex,pointOfSail,specialistFinish,generalistFinish
+NE,0,In irons (no-go),0.0133,0.0900
+E,1,Close-hauled,0.4100,0.3800
+N,1,Close-hauled,0.4833,0.1633
+SE,2,Beam reach,0.4233,0.4033
+NW,2,Beam reach,0.6767,0.3900
+S,3,Broad reach,0.5600,0.4167
+W,3,Broad reach,0.5233,0.4467
+SW,4,Run,0.6733,0.4233

@@ -1,0 +1,11 @@
+course,difficulty,maxNeurons,convFinish,neuronsUsed
+beam,easy reach,1,0.4952,0.96
+beam,easy reach,2,0.5269,1.94
+beam,easy reach,3,0.5121,2.56
+beam,easy reach,5,0.5104,3.94
+beam,easy reach,8,0.5140,4.81
+beat,hard beat,1,0.1602,1.00
+beat,hard beat,2,0.1642,1.81
+beat,hard beat,3,0.1702,2.88
+beat,hard beat,5,0.1613,3.69
+beat,hard beat,8,0.1702,4.84

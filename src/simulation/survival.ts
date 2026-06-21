@@ -40,6 +40,8 @@ export interface SurvivalParams {
 // Mindest-Score fürs Ankommen — liegt über dem Maximum des Trostpreises (0.2)
 const FINISHER_SCORE_FLOOR = 0.25;
 const CONSOLATION_FACTOR = 0.2;
+// Gewicht des VMG-Effizienz-Signals im Trostpreis (Rest = reiner Distanz-Fortschritt)
+const VMG_BLEND = 0.4;
 // Frühstart: Score wird gestutzt, aber Ankommen schlägt weiterhin den Trostpreis
 const PENALTY_FACTOR = 0.6;
 const PENALIZED_FINISHER_FLOOR = 0.21;
@@ -82,6 +84,15 @@ export function passedSurvivalCriterion(
   const dist = Math.sqrt(dx * dx + dy * dy);
   const maxDist = Math.sqrt(params.sizeX * params.sizeX + params.sizeY * params.sizeY);
   const progress = (marksRounded(indiv.challengeBits) + (1.0 - dist / maxDist)) / legs;
-  const score = CONSOLATION_FACTOR * progress * (penalized ? PENALTY_FACTOR : 1);
+
+  // VMG-Shaping: mittlere velocity-made-good zum Ziel (0..~1) ergänzt den reinen
+  // Distanz-Gradienten um ein Effizienz-Signal. Ein Boot, das sauber bei 45°
+  // segelt, wird gegenüber einem, das im Wind pinscht/stallt, bevorzugt — selbst
+  // bei gleicher Endposition. Negative VMG (Wegsegeln) zählt als 0.
+  const vmgPerTick = indiv.vmgTicks > 0 ? indiv.vmgAccum / indiv.vmgTicks : 0;
+  const vmgNorm = Math.max(0, Math.min(1, vmgPerTick));
+  const blended = (1 - VMG_BLEND) * progress + VMG_BLEND * vmgNorm;
+
+  const score = CONSOLATION_FACTOR * blended * (penalized ? PENALTY_FACTOR : 1);
   return { passed: score > 0, score };
 }

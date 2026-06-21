@@ -2,6 +2,7 @@
 // Ported from biosim4 genome.cpp and genome-compare.cpp
 
 import { Gene, Genome } from './types';
+import { randomUint, randomFloat } from './random';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -12,6 +13,12 @@ const SENSOR = 1 as const;
 const ACTION = 1 as const;
 
 const WEIGHT_DIVISOR = 8192.0;
+// Standardabweichung der Gewichts-Mutation (in Float-Einheiten, * WEIGHT_DIVISOR
+// = int16). Klein genug, dass eine Mutation das Verhalten nicht zerreißt — das
+// hält das Genom bei höheren Mutationsraten suchbar (vgl. Forschung E3).
+const WEIGHT_MUTATION_STD = 0.15 * WEIGHT_DIVISOR;
+const INT16_MAX = 32767;
+const INT16_MIN = -32768;
 
 // ---------------------------------------------------------------------------
 // Gene <-> 32-bit integer conversion (for comparison / hashing)
@@ -62,23 +69,23 @@ export function weightAsFloat(gene: Gene): number {
 }
 
 // ---------------------------------------------------------------------------
-// Random helpers (internal)
+// Random helpers (internal) — randomUint/randomFloat kommen aus ./random,
+// damit Genom-Mutation/-Crossover dem geseedeten PRNG folgen (Determinismus).
 // ---------------------------------------------------------------------------
-
-/** Random integer in [min, max] inclusive */
-function randomUint(min: number, max: number): number {
-  return min + Math.floor(Math.random() * (max - min + 1));
-}
-
-/** Random float in [0, 1) */
-function randomFloat(): number {
-  return Math.random();
-}
 
 /** Random signed int16 weight, range -32768..32767 */
 function makeRandomWeight(): number {
   const val = randomUint(0, 0xffff) - 0x8000;
   return val;
+}
+
+/** Standard-normalverteilte Zufallszahl (Box-Muller). */
+function randomGaussian(): number {
+  let u = 0;
+  let v = 0;
+  while (u === 0) u = randomFloat();
+  while (v === 0) v = randomFloat();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
 }
 
 // ---------------------------------------------------------------------------
@@ -116,9 +123,11 @@ export function makeRandomGenome(a: number, b?: number): Genome {
 // ---------------------------------------------------------------------------
 
 /**
- * Flip one random bit in a random gene of the genome.
- * Uses the C++ "method 1" approach: pick a random field to mutate
- * with equal 20% probability for each of sourceType, sinkType, sourceNum, sinkNum, weight.
+ * Mutate one random field of one random gene.
+ * Structural fields (source/sink type & num) flip a random bit; the continuous
+ * weight gets a small Gaussian perturbation instead of a bit-flip — bit-flips of
+ * high weight bits cause huge jumps (e.g. a sign flip), which makes the genome
+ * brittle and forces a very low usable mutation rate (vgl. Forschung E3).
  */
 export function randomBitFlip(genome: Genome): void {
   if (genome.length === 0) return;
@@ -140,12 +149,11 @@ export function randomBitFlip(genome: Genome): void {
     // sinkNum: flip a random bit (0..6, masked to 7 bits)
     genome[elementIndex].sinkNum = (genome[elementIndex].sinkNum ^ bitIndex8) & 0x7f;
   } else {
-    // weight: flip a random bit 1..15 (matching C++ randomUint(1,15))
-    const weightBit = 1 << randomUint(1, 15);
-    let w = genome[elementIndex].weight ^ weightBit;
-    // Keep in int16 range
-    if (w > 32767) w -= 65536;
-    if (w < -32768) w += 65536;
+    // weight: sanfte Gauß-Perturbation, gesättigt (nicht wrappend, sonst Sprung)
+    const delta = Math.round(randomGaussian() * WEIGHT_MUTATION_STD);
+    let w = genome[elementIndex].weight + delta;
+    if (w > INT16_MAX) w = INT16_MAX;
+    if (w < INT16_MIN) w = INT16_MIN;
     genome[elementIndex].weight = w;
   }
 }
@@ -262,13 +270,27 @@ export function generateChildGenome(
     // Deep copy the longer genome
     genome = gLonger.map((gene) => ({ ...gene }));
 
-    // Overlay a random slice from the shorter genome
-    const index0raw = randomUint(0, gShorter.length - 1);
-    const index1raw = randomUint(0, gShorter.length);
-    const sliceStart = Math.min(index0raw, index1raw);
-    const sliceEnd = Math.max(index0raw, index1raw);
-    for (let i = sliceStart; i < sliceEnd && i < genome.length; i++) {
-      genome[i] = { ...gShorter[i] };
+    // Struktur-bewusstes Crossover (vgl. Forschung E4): das alte Verfahren
+    // überlagerte einen positionellen Slice und überschrieb so evtl. völlig
+    // andere Verbindungen — destruktiv für ein epistatisches Genom. Stattdessen:
+    // - gleiche Verbindung in beiden Eltern -> Gewichte mitteln (sichere
+    //   Interpolation, Verbindung bleibt erhalten)
+    // - unterschiedliche Verbindung -> mit 50% das ganze Gen des kürzeren erben
+    //   (uniform; kein zusammenhängender Fremdblock, der Linkage zerreißt)
+    const n = Math.min(gShorter.length, genome.length);
+    for (let i = 0; i < n; i++) {
+      const a = genome[i];
+      const b = gShorter[i];
+      if (
+        a.sourceType === b.sourceType &&
+        a.sourceNum === b.sourceNum &&
+        a.sinkType === b.sinkType &&
+        a.sinkNum === b.sinkNum
+      ) {
+        a.weight = Math.round((a.weight + b.weight) / 2);
+      } else if (randomFloat() < 0.5) {
+        genome[i] = { ...b };
+      }
     }
 
     // Trim to average length of parents

@@ -9,6 +9,7 @@ import { SimParams, DEFAULT_PARAMS } from './params';
 import { feedForward } from './neural-net';
 import { getSensor, SENSOR_NAMES } from './sensors';
 import { executeActions } from './actions';
+import { seedRng, clearRng } from './random';
 import { initializeGeneration0, spawnNewGeneration, type GenerationResult } from './spawn';
 import { nameFromGenome, clanFromGenome } from './naming';
 import {
@@ -20,6 +21,9 @@ import {
   courseMarks,
   marksRounded,
   markRadius,
+  currentObjective,
+  compassAngleRad,
+  polarSpeed,
   REGATTA_FINISHED_BIT,
   REGATTA_MARK1_BIT,
   REGATTA_MARK2_BIT,
@@ -115,6 +119,15 @@ export class Simulator {
     this.simStep = 0;
     this.lastSurvivors = 0;
 
+    // Determinismus: einmal pro Lauf seeden, danach fließt ein kontinuierlicher
+    // PRNG-Strom durch alle Generationen — gleicher Seed + gleiche Params =
+    // Byte-gleicher Lauf. Sonst nicht-deterministisch (Math.random).
+    if (this.params.deterministic) {
+      seedRng(this.params.RNGSeed);
+    } else {
+      clearRng();
+    }
+
     this.grid.init(this.params.sizeX, this.params.sizeY);
     this.signals.init(this.params.signalLayers, this.params.sizeX, this.params.sizeY);
 
@@ -135,6 +148,10 @@ export class Simulator {
     for (let i = 1; i <= this.peeps.population; i++) {
       const indiv = this.peeps.getIndiv(i);
       if (!indiv.alive) continue;
+      // Finisher sind aus dem Rennen: sie denken/segeln nicht weiter und geben
+      // ihre Grid-Zelle frei (s. endOfSimStep), damit sie das Ziel-Gate nicht
+      // für noch racende Boote blockieren (entkoppelt Finisher-Rate vom Gedränge).
+      if (indiv.challengeBits & REGATTA_FINISHED_BIT) continue;
 
       indiv.age++;
       this.simStepOneIndiv(indiv);
@@ -166,6 +183,7 @@ export class Simulator {
       for (let i = 1; i <= this.peeps.population; i++) {
         const indiv = this.peeps.getIndiv(i);
         if (!indiv.alive) continue;
+        if (indiv.challengeBits & REGATTA_FINISHED_BIT) continue; // Finisher eingefroren
         indiv.age++;
         this.simStepOneIndiv(indiv);
       }
@@ -386,6 +404,23 @@ export class Simulator {
       if (!indiv.alive) continue;
       if (indiv.challengeBits & REGATTA_FINISHED_BIT) continue;
 
+      // VMG-Shaping: belohnt produktives Segeln zum aktuellen Ziel pro Tick.
+      // VMG = Bootsgeschwindigkeit * cos(Winkel zwischen Heading und Zielpeilung).
+      // No-Go (Speed 0.05) und Wegsegeln (cos<0) liefern beide ~0 — das schiebt
+      // die Evolution aus dem Überpinsch-Optimum Richtung 45°-Schlag (vgl. E2).
+      const obj = currentObjective(
+        indiv.challengeBits, sailingEnv.targetQuadrant, this.params.courseLegs, this.params.sizeX, this.params.sizeY,
+      );
+      const ox = obj.x - indiv.loc.x;
+      const oy = obj.y - indiv.loc.y;
+      const od = Math.sqrt(ox * ox + oy * oy);
+      if (od > 0) {
+        const a = compassAngleRad(indiv.heading.dir9);
+        const cos = (Math.cos(a) * ox + Math.sin(a) * oy) / od;
+        indiv.vmgAccum += polarSpeed(indiv.heading.dir9, sailingEnv.windFrom) * cos;
+      }
+      indiv.vmgTicks += 1;
+
       const done = marksRounded(indiv.challengeBits);
       if (done < marks.length) {
         const m = marks[done];
@@ -396,6 +431,9 @@ export class Simulator {
         }
       } else if (isOnFinishGate(indiv.loc.x, indiv.loc.y, gate)) {
         indiv.challengeBits |= REGATTA_FINISHED_BIT | Math.min(0xFFFF, this.simStep);
+        // Zelle freigeben: der Finisher ist durch und soll den Gate-Bereich
+        // nicht weiter belegen (er bleibt für das Rendering an indiv.loc stehen).
+        this.grid.set(indiv.loc, 0);
       }
     }
   }

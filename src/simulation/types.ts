@@ -356,6 +356,8 @@ export interface Indiv {
   heading: Dir;           // Bootsausrichtung (eine der 8 Richtungen, nie CENTER)
   speedEMA: number;       // gleitender Mittelwert erfolgreicher Moves (0..1)
   challengeBits: number;  // bits set when indiv accomplishes challenge tasks
+  vmgAccum: number;       // Summe der VMG (velocity made good) zum Ziel pro Racing-Tick
+  vmgTicks: number;       // Anzahl gewerteter Racing-Ticks (Normierung für vmgAccum)
   sensorCacheValues: Float32Array;
   sensorCacheEpochs: Uint32Array;
   sensorCacheToken: number;
@@ -385,6 +387,8 @@ export function createDefaultIndiv(): Indiv {
     heading: new Dir(Compass.N),
     speedEMA: 0,
     challengeBits: 0,
+    vmgAccum: 0,
+    vmgTicks: 0,
     sensorCacheValues: new Float32Array(Sensor.NUM_SENSES),
     sensorCacheEpochs: new Uint32Array(Sensor.NUM_SENSES),
     sensorCacheToken: 0,

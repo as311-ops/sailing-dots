@@ -28,6 +28,9 @@ const CHALLENGE_LABEL = "Regatta";
 
 const IS_SCREENSAVER = new URLSearchParams(window.location.search).has("screensaver");
 const SCREENSAVER_CYCLE_GENS = 100;
+// Sim-Schritte pro Frame im Screensaver. Niedriger = ruhigeres, glattes Gleiten
+// statt sprunghafter Mehr-Zellen-Bewegung pro Frame (1 = glattest, 3 = vorher).
+const SCREENSAVER_SPEED = 1;
 const SCREENSAVER_INITIAL_IDX = IS_SCREENSAVER ? Math.floor(Math.random() * PRESETS.length) : 0;
 
 function useWindowSize() {
@@ -169,7 +172,10 @@ export default function App() {
   // Screensaver: auto-start + auto-cycle presets
   useEffect(() => {
     if (!IS_SCREENSAVER) return;
-    const id = setTimeout(() => start(), 200);
+    const id = setTimeout(() => {
+      changeSpeed(SCREENSAVER_SPEED); // ruhiges Tempo erzwingen (überschreibt Auto-Skalierung)
+      start();
+    }, 200);
     return () => clearTimeout(id);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -183,7 +189,10 @@ export default function App() {
       setConfig(nextConfig);
       setRace({ name: nextPreset.name, description: nextPreset.description });
       reset(nextConfig);
-      setTimeout(() => start(), 100);
+      setTimeout(() => {
+        changeSpeed(SCREENSAVER_SPEED); // nach Reset erneut, da reset die Auto-Skalierung zurücksetzt
+        start();
+      }, 100);
     }
   }, [history.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -203,7 +212,7 @@ export default function App() {
 
     setSsBanner({ survivors: last.survivors, population: last.population, streak: ssStreakRef.current, sparkData });
 
-    const flashId = setTimeout(() => setSsFlash(null), 1500);
+    const flashId = setTimeout(() => setSsFlash(null), 2600);
     return () => clearTimeout(flashId);
   }, [history.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -419,8 +428,8 @@ export default function App() {
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              backgroundColor: ssFlash === 'wipeout' ? 'rgba(239,68,68,0.22)' : 'rgba(16,185,129,0.16)',
-              animation: 'ssFlash 1.5s ease-out forwards',
+              backgroundColor: ssFlash === 'wipeout' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.09)',
+              animation: 'ssFlash 2.6s ease-out forwards',
             }}
           />
         )}
